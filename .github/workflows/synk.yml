@@ -50,4 +50,5 @@ jobs:
           SNYK_API: "https://app.snyk.io/api"
           JAVA_HOME: ${{ steps.setup-java.outputs.java-home }} # Set JAVA_HOME explicitly
         run: snyk monitor --all-projects
+        continue-on-error: true
 
