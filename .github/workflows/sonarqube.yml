@@ -45,8 +45,7 @@ jobs:
         uses: SonarSource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # The token you set as a GitHub secret
-          with:
-            args: ''
+
       # Upload test results to GitHub if needed
       - name: Upload test results
         if: always()
