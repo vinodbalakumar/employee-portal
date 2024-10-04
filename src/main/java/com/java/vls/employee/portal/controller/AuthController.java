@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,7 +29,7 @@ public class AuthController {
         } catch (Exception e) {
             throw new Exception("Invalid credentials", e);
         }
-        UserDetails userDetails = userService.loadUserByUsername(username);
+        User userDetails = userService.findByUsername(username);
         return jwtUtil.generateToken(userDetails.getUsername());
     }
 
@@ -40,4 +39,15 @@ public class AuthController {
         User registeredUser = userService.registerUser(user);
         return ResponseEntity.ok("User registered successfully with ID: " + registeredUser.getId());
     }
+
+    @GetMapping("/users/{username}")
+    public ResponseEntity<User> getUser(@PathVariable String username) {
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(user);
+    }
+
+
 }
