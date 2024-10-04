@@ -1,29 +1,20 @@
-name: Checkmarx SAST Scan
-
-on:
-  push:
-    branches: [ main, 'feature/**' ]
-  pull_request:
-    branches: [ main ]
-
 jobs:
-  checkmarx-scan:
+  open-source-security:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - uses: actions/checkout@master
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/maven@master
+        env:
+          SNYK_TOKEN: b55f74fe-aeeb-4267-b261-ac433fd882fa
 
-      - name: Checkmarx CxFlow Action
-        uses: checkmarx-ts/checkmarx-github-action@v1.0
+  code-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/maven@master
+        env:
+          SNYK_TOKEN: b55f74fe-aeeb-4267-b261-ac433fd882fa
         with:
-          project: ${{ github.repository }}
-          team: '/CxServer/SP/Company/TeamA'
-          checkmarx_url: ${{ secrets.CHECKMARX_URL }}
-          checkmarx_username: ${{ secrets.CHECKMARX_USERNAME }}
-          checkmarx_password: ${{ secrets.CHECKMARX_PASSWORD }}
-          checkmarx_client_secret: ${{ secrets.CHECKMARX_CLIENT_SECRET }}
-          incremental: true
-          break_build: false
-          scanners: sast
-          bug_tracker: GITHUBPULL
-          params: --namespace=${{ github.repository_owner }} --repo-name=${{ github.event.repository.name }} --branch=${{ github.ref }}
+          command: code test
