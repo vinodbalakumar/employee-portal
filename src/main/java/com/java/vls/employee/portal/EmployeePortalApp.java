@@ -1,4 +1,4 @@
-package com.java.aws;
+package com.java.vls.employee.portal;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,9 +6,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
 @EnableAsync
-public class AwsApplication {
+public class EmployeePortalApp {
 
     public static void main(String[] args) {
-        SpringApplication.run(AwsApplication.class, args);
+        SpringApplication.run(EmployeePortalApp.class, args);
     }
 }

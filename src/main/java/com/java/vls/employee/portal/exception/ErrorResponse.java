@@ -1,4 +1,4 @@
-package com.java.aws.exception;
+package com.java.vls.employee.portal.exception;
 
 import java.util.List;
 
