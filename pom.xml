@@ -68,18 +68,15 @@
 			<version>0.9.1</version>
 		</dependency>
 
-		<!-- H2 Database -->
+		<!-- MySQL Driver -->
 		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- Thymeleaf template engine (optional for frontend view rendering) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
+
+
 
 	</dependencies>
 
