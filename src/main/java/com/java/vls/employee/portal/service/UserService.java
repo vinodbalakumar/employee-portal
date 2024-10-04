@@ -1,7 +1,7 @@
-package com.java.aws.service;
+package com.java.vls.employee.portal.service;
 
-import com.java.aws.entity.User;
-import com.java.aws.repository.UserRepository;
+import com.java.vls.employee.portal.entity.User;
+import com.java.vls.employee.portal.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

@@ -1,4 +1,4 @@
-package com.java.aws.entity;
+package com.java.vls.employee.portal.entity;
 
 import lombok.Getter;
 import lombok.Setter;
