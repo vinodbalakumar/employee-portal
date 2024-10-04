@@ -25,6 +25,10 @@ jobs:
           java-version: '11'
           distribution: 'temurin' # or 'zulu', 'adopt', 'oracle' as per your preference
 
+      # Set JAVA_HOME environment variable
+      - name: Set JAVA_HOME
+        run: echo "JAVA_HOME=${{ steps.setup-java.outputs.java-home }}" >> $GITHUB_ENV
+
       # Install Snyk CLI
       - name: Install Snyk CLI
         run: npm install -g snyk
@@ -33,10 +37,12 @@ jobs:
       - name: Run Snyk Test
         env:
           SNYK_TOKEN: b55f74fe-aeeb-4267-b261-ac433fd882fa # Use the Snyk token
+          JAVA_HOME: ${{ steps.setup-java.outputs.java-home }} # Set JAVA_HOME explicitly
         run: snyk test --all-projects
 
       # Optionally monitor the project with Snyk
       - name: Monitor with Snyk
         env:
           SNYK_TOKEN: b55f74fe-aeeb-4267-b261-ac433fd882fa
+          JAVA_HOME: ${{ steps.setup-java.outputs.java-home }} # Set JAVA_HOME explicitly
         run: snyk monitor --all-projects
