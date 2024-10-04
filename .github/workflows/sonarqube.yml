@@ -47,6 +47,7 @@ jobs:
           projectKey: vinodbalakumar_employee-portal    # Set your SonarCloud project key
           organization: vinodbalakumar # Set your SonarCloud organization key
           token: ${{ secrets.SONAR_TOKEN }}            # The token you set as a GitHub secret
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       # Upload test results to GitHub if needed
       - name: Upload test results
