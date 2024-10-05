@@ -12,7 +12,7 @@ This project demonstrates a simple JWT (JSON Web Token) authentication service b
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Endpoints](#endpoints)
-- [Testing the JWT Authentication](#testing-the-jwt-authentication)
+- [Testing the JWT Authentication](#testing-the-jwt-authentication) stateless jwt token: means not managing session with server
 - [License](#license)
 
 ## Technologies Used
