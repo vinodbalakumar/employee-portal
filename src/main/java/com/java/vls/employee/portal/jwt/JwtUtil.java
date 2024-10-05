@@ -57,10 +57,6 @@ public class JwtUtil {
 
     // Generate token for user
     public String generateToken(String username) {
-        return createToken(username);
-    }
-
-    public String createToken(String username) {
         return Jwts.builder()
                 .subject(username)
                 .issuedAt(new Date(System.currentTimeMillis()))
