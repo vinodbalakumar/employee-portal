@@ -1,0 +1,7 @@
+@Library('jenkins-shared-library') _
+
+deployPipeline(
+    dockerRepo: 'your-docker-repo/spring-boot-app',
+    kubeconfigId: 'kubeconfig',
+    awsCredentialsId: 'aws-credentials'
+)
