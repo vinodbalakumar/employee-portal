@@ -1,48 +1,39 @@
 package com.java.vls.employee.portal.service;
 
+import com.java.vls.employee.portal.entity.Role;
 import com.java.vls.employee.portal.entity.User;
+import com.java.vls.employee.portal.repository.RoleRepository;
 import com.java.vls.employee.portal.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
+import javax.transaction.Transactional;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
-public class UserService implements UserDetailsService {
+public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
 
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Transactional
     public User registerUser(User user) {
-        // Check if the user already exists
-        if (userRepository.findByUsername(user.getUsername()) != null) {
-            throw new RuntimeException("User already exists");
-        }
-
-        // Encrypt the password
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-        // Save the user
+        Role userRole = roleRepository.findByName(user.getRole()); // or any role
+        user.setRoles(new HashSet<>(Set.of(userRole)));
         return userRepository.save(user);
     }
 
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // Fetch the user from the database
-        User user = userRepository.findByUsername(username);
-
-        if (user == null) {
-            throw new UsernameNotFoundException("User not found");
-        }
-
-        // Return a UserDetails object (required by Spring Security)
-        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), Collections.emptyList());
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 }

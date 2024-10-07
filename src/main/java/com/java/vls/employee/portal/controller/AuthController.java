@@ -7,21 +7,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    private JwtUtil jwtUtil;
 
-    @Autowired
-    private UserService userService;
+    private final JwtUtil jwtUtil;
+
+    private final UserService userService;
+
+    public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserService userService){
+        this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
+        this.userService = userService;
+    }
 
     @PostMapping("/login")
     public String login(@RequestParam("username") String username, @RequestParam("password") String password) throws Exception {
@@ -30,7 +33,7 @@ public class AuthController {
         } catch (Exception e) {
             throw new Exception("Invalid credentials", e);
         }
-        UserDetails userDetails = userService.loadUserByUsername(username);
+        User userDetails = userService.findByUsername(username);
         return jwtUtil.generateToken(userDetails.getUsername());
     }
 
@@ -40,4 +43,15 @@ public class AuthController {
         User registeredUser = userService.registerUser(user);
         return ResponseEntity.ok("User registered successfully with ID: " + registeredUser.getId());
     }
+
+    @GetMapping("/users/{username}")
+    public ResponseEntity<User> getUser(@PathVariable String username) {
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(user);
+    }
+
+
 }
