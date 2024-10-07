@@ -22,8 +22,6 @@ public class JwtUtil {
 
     private static final long EXPIRATION_TIME = 864_000_000; // 10 days
 
-    private static final SecretKey KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-
     // Constructor to initialize the secret key
     public JwtUtil(@Value("${jwt.secret}") String secret) {
         byte[] decodedKey = Base64.getDecoder().decode(secret);

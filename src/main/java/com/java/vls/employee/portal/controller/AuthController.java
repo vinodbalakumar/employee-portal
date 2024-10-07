@@ -13,14 +13,18 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth")
 public class AuthController {
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    private JwtUtil jwtUtil;
 
-    @Autowired
-    private UserService userService;
+    private final JwtUtil jwtUtil;
+
+    private final UserService userService;
+
+    public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserService userService){
+        this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
+        this.userService = userService;
+    }
 
     @PostMapping("/login")
     public String login(@RequestParam("username") String username, @RequestParam("password") String password) throws Exception {
