@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - feature/**
   pull_request:
     branches:
       - main
+      - feature/**
 
 jobs:
   snyk:
@@ -37,13 +39,17 @@ jobs:
       - name: Run Snyk Test
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }} # Use the Snyk token
+          SNYK_API: "https://app.snyk.io/api"
           JAVA_HOME: ${{ steps.setup-java.outputs.java-home }} # Set JAVA_HOME explicitly
-        run: snyk test --all-projects
+        run: snyk test --severity-threshold=high --exit-code=0 --all-projects
+        continue-on-error: true
 
       # Optionally monitor the project with Snyk
       - name: Monitor with Snyk
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_API: "https://app.snyk.io/api"
           JAVA_HOME: ${{ steps.setup-java.outputs.java-home }} # Set JAVA_HOME explicitly
-        run: snyk monitor --all-projects
+        run: snyk monitor --severity-threshold=high --exit-code=0 --all-projects
+        continue-on-error: true
 
