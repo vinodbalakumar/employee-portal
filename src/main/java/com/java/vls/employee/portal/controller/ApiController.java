@@ -34,6 +34,7 @@ public class ApiController {
      */
     @GetMapping("/protected1")
     public ResponseEntity<String> getProtectedResource() {
+        log.info("Protected sample endpoint requested");
         return ResponseEntity.ok("This is a protected resource!");
     }
 
@@ -42,6 +43,7 @@ public class ApiController {
      */
     @GetMapping("/hello")
     public String hello() {
+        log.debug("Hello endpoint requested");
         return "Hello, this is a secured endpoint!";
     }
 
@@ -59,10 +61,11 @@ public class ApiController {
      */
     @GetMapping("/callback")
     public String callback(@RequestParam String code) {
-        log.info("Tesla authorization code received");
+        log.info("Tesla authorization code received: codeLength={}", code.length());
         TeslaTokens tokens = new TeslaTokens();
         tokens.setAccessToken(code);
-        teslaTokenRepository.save(tokens);
+        TeslaTokens savedToken = teslaTokenRepository.save(tokens);
+        log.info("Tesla authorization code stored: tokenId={}", savedToken.getId());
         return "Tesla login successful. Code received: " + code;
     }
 
@@ -77,10 +80,12 @@ public class ApiController {
         // Load from the classpath so the file is available both in the IDE and in the Docker jar.
         ClassPathResource resource = new ClassPathResource(TESLA_PUBLIC_KEY_RESOURCE);
         if (!resource.exists()) {
+            log.error("Tesla public key file not found on classpath: resource={}", TESLA_PUBLIC_KEY_RESOURCE);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
         String key = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+        log.info("Tesla public key served: resource={}, bytes={}", TESLA_PUBLIC_KEY_RESOURCE, key.length());
 
         return ResponseEntity.ok()
                 .header("Content-Disposition", "inline")

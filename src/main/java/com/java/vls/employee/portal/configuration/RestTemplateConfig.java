@@ -1,5 +1,6 @@
 package com.java.vls.employee.portal.configuration;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
@@ -14,11 +15,13 @@ import org.springframework.web.client.RestTemplate;
 import javax.net.ssl.SSLContext;
 
 @Configuration
+@Slf4j
 public class RestTemplateConfig {
 
     @Bean
     public RestTemplate restTemplate() throws Exception {
         // The local Tesla proxy can use a self-signed certificate. For production, prefer a proper trust store.
+        log.warn("Creating RestTemplate that trusts self-signed certificates for the local Tesla proxy");
         TrustStrategy acceptingTrustStrategy = (x509Certificates, s) -> true;
 
         SSLContext sslContext = SSLContexts.custom()

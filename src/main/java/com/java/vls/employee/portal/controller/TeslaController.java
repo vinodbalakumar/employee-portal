@@ -4,6 +4,7 @@ import com.java.vls.employee.portal.dto.request.Vehicle;
 import com.java.vls.employee.portal.service.TeslaService;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/tesla")
+@Slf4j
 public class TeslaController {
 
     private static final String WAKE_UP = "wake_up";
@@ -36,6 +38,7 @@ public class TeslaController {
      */
     @GetMapping("/vehicles")
     public ResponseEntity<Vehicle> getVehicles() {
+        log.info("Tesla vehicles endpoint requested");
         Vehicle json = teslaService.getVehicles();
 
         return ResponseEntity.ok()
@@ -48,7 +51,9 @@ public class TeslaController {
      */
     @PostMapping("/wake")
     public ResponseEntity<String> wakeVehicle() {
-        return teslaService.executeCommand(WAKE_UP, null).getStatusCode() == HttpStatus.OK
+        log.info("Tesla wake endpoint requested");
+        ResponseEntity<String> response = teslaService.executeCommand(WAKE_UP, null);
+        return response.getStatusCode() == HttpStatus.OK
                 ? ResponseEntity.ok("Vehicle is waking up")
                 : ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to wake vehicle");
     }
@@ -58,6 +63,7 @@ public class TeslaController {
      */
     @PostMapping("/flash-lights")
     public ResponseEntity<String> flashLights() {
+        log.info("Tesla flash lights endpoint requested");
         return teslaService.executeCommand(FLASH_LIGHTS, null);
     }
 
@@ -66,6 +72,7 @@ public class TeslaController {
      */
     @PostMapping("/honk")
     public ResponseEntity<String> honkHorn() {
+        log.info("Tesla honk endpoint requested");
         return teslaService.executeCommand(HONK_HORN, null);
     }
 
@@ -74,6 +81,7 @@ public class TeslaController {
      */
     @PostMapping("/lock")
     public ResponseEntity<String> lock() {
+        log.info("Tesla lock endpoint requested");
         return teslaService.executeCommand(DOOR_LOCK, null);
     }
 
@@ -82,6 +90,7 @@ public class TeslaController {
      */
     @PostMapping("/unlock")
     public ResponseEntity<String> unlock() {
+        log.info("Tesla unlock endpoint requested");
         return teslaService.executeCommand(DOOR_UNLOCK, null);
     }
 
@@ -90,6 +99,7 @@ public class TeslaController {
      */
     @PostMapping("/climate/start")
     public ResponseEntity<String> startClimate() {
+        log.info("Tesla climate start endpoint requested");
         return teslaService.executeCommand(CLIMATE_START, null);
     }
 
@@ -98,6 +108,7 @@ public class TeslaController {
      */
     @PostMapping("/climate/stop")
     public ResponseEntity<String> stopClimate() {
+        log.info("Tesla climate stop endpoint requested");
         return teslaService.executeCommand(CLIMATE_STOP, null);
     }
 
@@ -106,6 +117,7 @@ public class TeslaController {
      */
     @PostMapping("/trunk/open")
     public ResponseEntity<String> openTrunk() {
+        log.info("Tesla rear trunk endpoint requested");
         return teslaService.executeCommand(ACTUATE_TRUNK, Map.of("which_trunk", "rear"));
     }
 
@@ -114,6 +126,7 @@ public class TeslaController {
      */
     @PostMapping("/frunk/open")
     public ResponseEntity<String> openFrunk() {
+        log.info("Tesla front trunk endpoint requested");
         return teslaService.executeCommand(ACTUATE_TRUNK, Map.of("which_trunk", "front"));
     }
 
@@ -122,6 +135,7 @@ public class TeslaController {
      */
     @PostMapping("/set/driverTemperature")
     public ResponseEntity<String> setTemprature(@RequestParam Long driverTemp) {
+        log.info("Tesla driver temperature endpoint requested: driverTemp={}", driverTemp);
         return teslaService.executeCommand(SET_TEMPS, Map.of("driver_temp", driverTemp));
     }
 
@@ -130,6 +144,7 @@ public class TeslaController {
      */
     @PostMapping("/set/passengerTemperature")
     public ResponseEntity<String> passengerTemperature(@RequestParam Long passengerTemperature) {
+        log.info("Tesla passenger temperature endpoint requested: passengerTemperature={}", passengerTemperature);
         return teslaService.executeCommand(SET_TEMPS, Map.of("passenger_temp", passengerTemperature));
     }
 
@@ -138,6 +153,7 @@ public class TeslaController {
      */
     @PostMapping("/start/charging")
     public ResponseEntity<String> startCharging() {
+        log.info("Tesla start charging endpoint requested");
         return teslaService.executeCommand(CHARGE_START, null);
     }
 
@@ -146,6 +162,7 @@ public class TeslaController {
      */
     @PostMapping("/stop/charging")
     public ResponseEntity<String> stopCharging() {
+        log.info("Tesla stop charging endpoint requested");
         return teslaService.executeCommand(CHARGE_STOP, null);
     }
 
@@ -154,6 +171,7 @@ public class TeslaController {
      */
     @PostMapping("/cmd")
     public ResponseEntity<String> cmd(@RequestParam(required = false)  String command) {
+        log.info("Tesla custom command endpoint requested: command={}", command);
         return teslaService.executeCommand( command, null);
     }
 }

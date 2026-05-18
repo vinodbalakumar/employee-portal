@@ -22,6 +22,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -51,22 +52,33 @@ public class TeslaService {
      * @return first vehicle returned by Tesla, or {@code null} when the account has no vehicles
      */
     public Vehicle getVehicles() {
-        ResponseEntity<VehicleApiResponse> response = restTemplate.exchange(
-                buildFleetUrl("/api/1/vehicles"),
-                HttpMethod.GET,
-                new HttpEntity<>(headers()),
-                VehicleApiResponse.class
-        );
+        String url = buildFleetUrl("/api/1/vehicles");
+        log.info("Fetching Tesla vehicles: url={}", url);
+
+        ResponseEntity<VehicleApiResponse> response;
+        try {
+            response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers()),
+                    VehicleApiResponse.class
+            );
+        } catch (RestClientException ex) {
+            log.error("Tesla vehicle fetch failed: url={}, reason={}", url, ex.getMessage(), ex);
+            throw ex;
+        }
 
         List<Vehicle> vehicles = Optional.ofNullable(response.getBody())
                 .map(VehicleApiResponse::getResponse)
                 .orElse(Collections.emptyList());
         if (vehicles.isEmpty()) {
+            log.warn("Tesla vehicle fetch returned no vehicles: status={}", response.getStatusCodeValue());
             return null;
         }
 
         Vehicle vehicle = vehicles.get(0);
-        log.info("Fetched vehicle from Tesla API: {}", vehicle.getDisplayName());
+        log.info("Fetched Tesla vehicle: displayName={}, vinSuffix={}, status={}",
+                vehicle.getDisplayName(), suffix(vehicle.getVin()), response.getStatusCodeValue());
         saveOrUpdateVehicle(vehicle);
         return vehicle;
     }
@@ -87,7 +99,18 @@ public class TeslaService {
         Map<String, Object> requestBody = body == null ? Collections.emptyMap() : body;
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers());
 
-        return restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+        log.info("Executing Tesla command: command={}, targetSuffix={}, url={}, bodyKeys={}",
+                command, suffix(vehicleIdOrVin), url, requestBody.keySet());
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+            log.info("Tesla command completed: command={}, targetSuffix={}, status={}",
+                    command, suffix(vehicleIdOrVin), response.getStatusCodeValue());
+            return response;
+        } catch (RestClientException ex) {
+            log.error("Tesla command failed: command={}, targetSuffix={}, url={}, reason={}",
+                    command, suffix(vehicleIdOrVin), url, ex.getMessage(), ex);
+            throw ex;
+        }
     }
 
     /**
@@ -108,13 +131,20 @@ public class TeslaService {
      */
     public TeslaTokens getValidAccessToken() {
         TeslaTokens token = tokenRepository.findById(teslaProperties.getDefaultTokenId())
-                .orElseThrow(() -> new IllegalStateException("Tesla token not found for configured token id"));
+                .orElseThrow(() -> {
+                    log.error("Tesla token not found: configuredTokenId={}", teslaProperties.getDefaultTokenId());
+                    return new IllegalStateException("Tesla token not found for configured token id");
+                });
 
         // Refresh slightly before expiry so command calls do not race the token timeout.
-        if (token.getExpiresAt().isAfter(LocalDateTime.now().plusMinutes(teslaProperties.getTokenRefreshSkewMinutes()))) {
+        if (token.getExpiresAt() != null
+                && token.getExpiresAt().isAfter(LocalDateTime.now().plusMinutes(teslaProperties.getTokenRefreshSkewMinutes()))) {
+            log.debug("Using cached Tesla token: tokenId={}, expiresAt={}", token.getId(), token.getExpiresAt());
             return token;
         }
 
+        log.info("Tesla token refresh required: tokenId={}, expiresAt={}, refreshSkewMinutes={}",
+                token.getId(), token.getExpiresAt(), teslaProperties.getTokenRefreshSkewMinutes());
         return refreshAccessToken(token);
     }
 
@@ -133,16 +163,28 @@ public class TeslaService {
         HttpEntity<Map<String, String>> request =
                 new HttpEntity<>(requestBody, headers);
 
-        ResponseEntity<TeslaTokenResponse> response =
-                restTemplate.exchange(
-                        teslaProperties.getAuthTokenUrl(),
-                        HttpMethod.POST,
-                        request,
-                        TeslaTokenResponse.class
-                );
+        log.info("Refreshing Tesla access token: tokenId={}, authTokenUrl={}",
+                token.getId(), teslaProperties.getAuthTokenUrl());
+        ResponseEntity<TeslaTokenResponse> response;
+        try {
+            response = restTemplate.exchange(
+                    teslaProperties.getAuthTokenUrl(),
+                    HttpMethod.POST,
+                    request,
+                    TeslaTokenResponse.class
+            );
+        } catch (RestClientException ex) {
+            log.error("Tesla token refresh failed: tokenId={}, authTokenUrl={}, reason={}",
+                    token.getId(), teslaProperties.getAuthTokenUrl(), ex.getMessage(), ex);
+            throw ex;
+        }
 
         TeslaTokenResponse body = Optional.ofNullable(response.getBody())
-                .orElseThrow(() -> new IllegalStateException("Tesla token refresh returned an empty response"));
+                .orElseThrow(() -> {
+                    log.error("Tesla token refresh returned empty response: tokenId={}, status={}",
+                            token.getId(), response.getStatusCodeValue());
+                    return new IllegalStateException("Tesla token refresh returned an empty response");
+                });
 
         token.setAccessToken(body.getAccessToken());
         token.setRefreshToken(body.getRefreshToken());
@@ -153,7 +195,10 @@ public class TeslaService {
                 LocalDateTime.now()
                         .plusSeconds(body.getExpiresIn())
         );
-        return  tokenRepository.save(token);
+        TeslaTokens savedToken = tokenRepository.save(token);
+        log.info("Tesla token refresh completed: tokenId={}, status={}, expiresAt={}",
+                savedToken.getId(), response.getStatusCodeValue(), savedToken.getExpiresAt());
+        return savedToken;
     }
 
     /**
@@ -169,7 +214,9 @@ public class TeslaService {
         entity.setColor(vehicle.getColor());
         entity.setAccessType(vehicle.getAccessType());
 
-        vehicleRepository.save(entity);
+        TeslaVehicle savedVehicle = vehicleRepository.save(entity);
+        log.info("Saved Tesla vehicle locally: id={}, displayName={}, vinSuffix={}",
+                savedVehicle.getId(), savedVehicle.getDisplayName(), suffix(savedVehicle.getVin()));
     }
 
     /**
@@ -177,13 +224,17 @@ public class TeslaService {
      */
     private String resolveVehicleIdOrVin() {
         if (teslaProperties.getVehicleIdOrVin() != null && !teslaProperties.getVehicleIdOrVin().isBlank()) {
+            log.debug("Using configured Tesla vehicle target: targetSuffix={}", suffix(teslaProperties.getVehicleIdOrVin()));
             return teslaProperties.getVehicleIdOrVin();
         }
 
         TeslaTokens token = getValidAccessToken();
         if (token.getClient() == null || token.getClient().getVehicles() == null) {
+            log.error("No Tesla vehicle available for active client: tokenId={}", token.getId());
             throw new IllegalStateException("No Tesla vehicle configured for the active client");
         }
+        log.debug("Using Tesla vehicle from active client: tokenId={}, targetSuffix={}",
+                token.getId(), suffix(token.getClient().getVehicles().getVin()));
         return token.getClient().getVehicles().getVin();
     }
 
@@ -213,5 +264,13 @@ public class TeslaService {
         return UriComponentsBuilder.fromHttpUrl(teslaProperties.getProxyBase())
                 .path(path)
                 .toUriString();
+    }
+
+    private String suffix(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        int start = Math.max(0, value.length() - 4);
+        return value.substring(start);
     }
 }

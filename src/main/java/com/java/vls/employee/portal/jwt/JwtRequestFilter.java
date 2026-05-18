@@ -1,6 +1,7 @@
 package com.java.vls.employee.portal.jwt;
 
 import io.jsonwebtoken.JwtException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @Component
+@Slf4j
 public class JwtRequestFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil; // Your JWT utility class
@@ -53,6 +55,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             try {
                 username = jwtUtil.extractUsername(jwt);
             } catch (JwtException | IllegalArgumentException ex) {
+                log.warn("Rejected JWT while extracting username: path={}, remoteAddress={}, reason={}",
+                        request.getRequestURI(), request.getRemoteAddr(), ex.getClass().getSimpleName());
                 SecurityContextHolder.clearContext();
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or unsupported JWT token");
                 return;
@@ -63,6 +67,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
             try {
                 if (!jwtUtil.validateToken(jwt, userDetails.getUsername())) {
+                    log.warn("Rejected invalid JWT: username={}, path={}, remoteAddress={}",
+                            username, request.getRequestURI(), request.getRemoteAddr());
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
                     return;
                 }
@@ -70,7 +76,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                log.debug("JWT authenticated: username={}, path={}", username, request.getRequestURI());
             } catch (JwtException | IllegalArgumentException ex) {
+                log.warn("Rejected JWT during validation: username={}, path={}, remoteAddress={}, reason={}",
+                        username, request.getRequestURI(), request.getRemoteAddr(), ex.getClass().getSimpleName());
                 SecurityContextHolder.clearContext();
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or unsupported JWT token");
                 return;

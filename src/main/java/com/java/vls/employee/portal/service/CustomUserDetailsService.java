@@ -2,6 +2,7 @@ package com.java.vls.employee.portal.service;
 
 import com.java.vls.employee.portal.entity.User;
 import com.java.vls.employee.portal.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -12,6 +13,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
@@ -25,6 +27,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsername(username);
 
         if (user == null) {
+            log.warn("User lookup failed: username={}", username);
             throw new UsernameNotFoundException("User not found: " + username);
         }
 
@@ -32,6 +35,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         Set<SimpleGrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority(role.getName()))
                 .collect(Collectors.toSet());
+        log.debug("User loaded for authentication: username={}, roles={}", username, authorities.size());
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(), user.getPassword(), authorities
