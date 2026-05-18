@@ -15,5 +15,6 @@ ENV DB_PORT=3306
 ENV DB_NAME=test
 ENV DB_USERNAME=root
 ENV DB_PASSWORD=root
+ENV TESLA_PROXY_BASE=https://host.docker.internal:4443
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

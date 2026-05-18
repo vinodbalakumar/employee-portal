@@ -71,6 +71,7 @@ docker run -d --name employee-portal -p 8080:8080 ^
   -e DB_NAME=test ^
   -e DB_USERNAME=root ^
   -e DB_PASSWORD=root ^
+  -e TESLA_PROXY_BASE=https://host.docker.internal:4443 ^
   employee-portal:latest
 ```
 
@@ -174,6 +175,12 @@ If Docker cannot connect to MySQL:
 - Make sure the `test` database exists.
 - Make sure the configured MySQL user can connect over TCP.
 - In Docker, use `DB_HOST=host.docker.internal`, not `localhost`.
+
+If Docker cannot connect to the Tesla HTTP proxy:
+
+- In Docker, use `TESLA_PROXY_BASE=https://host.docker.internal:4443`, not `https://127.0.0.1:4443`.
+- Confirm the proxy is running on the host with `Get-NetTCPConnection -LocalPort 4443`.
+- From inside the container, `127.0.0.1` is the container itself, not your Windows host.
 
 If the Tesla public key fails:
 
