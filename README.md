@@ -111,6 +111,9 @@ The Tesla URLs are not hardcoded in service code. `TeslaService` reads them thro
 | `GET /.well-known/appspecific/com.tesla.3p.public-key.pem` | Tesla public key file |
 | `GET /api/.well-known/appspecific/com.tesla.3p.public-key.pem` | API-prefixed Tesla public key file |
 | `GET /api/tesla/vehicles` | Fetches vehicles from Tesla Fleet API |
+| `GET /api/tesla/status` | Reads combined lock and charging status |
+| `GET /api/tesla/status/lock` | Reads whether the vehicle is locked or unlocked |
+| `GET /api/tesla/status/charging` | Reads whether the vehicle is charging |
 | `POST /api/tesla/wake` | Wakes the configured vehicle |
 | `POST /api/tesla/flash-lights` | Flashes vehicle lights |
 | `POST /api/tesla/honk` | Honks horn |

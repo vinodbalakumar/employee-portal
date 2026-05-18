@@ -47,6 +47,33 @@ public class TeslaController {
     }
 
     /**
+     * Reads whether the configured vehicle is locked or unlocked.
+     */
+    @GetMapping("/status/lock")
+    public ResponseEntity<Map<String, Object>> getLockStatus() {
+        log.info("Tesla lock status endpoint requested");
+        return ResponseEntity.ok(teslaService.getLockStatus());
+    }
+
+    /**
+     * Reads whether the configured vehicle is charging.
+     */
+    @GetMapping("/status/charging")
+    public ResponseEntity<Map<String, Object>> getChargingStatus() {
+        log.info("Tesla charging status endpoint requested");
+        return ResponseEntity.ok(teslaService.getChargingStatus());
+    }
+
+    /**
+     * Reads a combined snapshot of lock and charging state.
+     */
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Object>> getVehicleStatus() {
+        log.info("Tesla combined status endpoint requested");
+        return ResponseEntity.ok(teslaService.getVehicleStatus());
+    }
+
+    /**
      * Sends a wake-up request directly to Tesla Fleet API.
      */
     @PostMapping("/wake")

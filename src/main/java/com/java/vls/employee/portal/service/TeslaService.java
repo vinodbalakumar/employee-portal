@@ -1,8 +1,10 @@
 package com.java.vls.employee.portal.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,6 +24,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -29,6 +32,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Service
 @Slf4j
 public class TeslaService {
+
+    private static final int VEHICLE_DATA_WAKE_RETRY_COUNT = 3;
+    private static final long VEHICLE_DATA_WAKE_RETRY_DELAY_MS = 10000L;
 
     private final RestTemplate restTemplate;
     private final TeslaProperties teslaProperties;
@@ -94,7 +100,7 @@ public class TeslaService {
      * @return raw Tesla/proxy response
      */
     public ResponseEntity<String> executeCommand(String command, Map<String, Object> body) {
-        String vehicleIdOrVin = resolveVehicleIdOrVin();
+        String vehicleIdOrVin = resolveVehicleIdOrVin(!"wake_up".equals(command));
         String url = buildCommandUrl(command, vehicleIdOrVin);
         Map<String, Object> requestBody = body == null ? Collections.emptyMap() : body;
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers());
@@ -111,6 +117,102 @@ public class TeslaService {
                     command, suffix(vehicleIdOrVin), url, ex.getMessage(), ex);
             throw ex;
         }
+    }
+
+    /**
+     * Reads whether the configured vehicle is locked or unlocked from Tesla vehicle data.
+     */
+    public Map<String, Object> getLockStatus() {
+        JsonNode vehicleData;
+        try {
+            vehicleData = fetchVehicleData();
+        } catch (HttpClientErrorException ex) {
+            if (isVehicleUnavailable(ex)) {
+                return unavailableStatus("lock", ex);
+            }
+            throw ex;
+        }
+        JsonNode vehicleState = vehicleData.path("vehicle_state");
+        JsonNode lockedNode = vehicleState.path("locked");
+        Boolean locked = lockedNode.isMissingNode() || lockedNode.isNull() ? null : lockedNode.asBoolean();
+
+        Map<String, Object> status = new LinkedHashMap<>();
+        status.put("available", true);
+        status.put("locked", locked);
+        status.put("lockState", locked == null ? "unknown" : locked ? "locked" : "unlocked");
+        status.put("vehicleState", vehicleData.path("state").asText(""));
+        status.put("vinSuffix", suffix(vehicleData.path("vin").asText("")));
+
+        log.info("Tesla lock status read: lockState={}, vehicleState={}, vinSuffix={}",
+                status.get("lockState"), status.get("vehicleState"), status.get("vinSuffix"));
+        return status;
+    }
+
+    /**
+     * Reads whether the configured vehicle is charging from Tesla vehicle data.
+     */
+    public Map<String, Object> getChargingStatus() {
+        JsonNode vehicleData;
+        try {
+            vehicleData = fetchVehicleData();
+        } catch (HttpClientErrorException ex) {
+            if (isVehicleUnavailable(ex)) {
+                return unavailableStatus("charging", ex);
+            }
+            throw ex;
+        }
+        JsonNode chargeState = vehicleData.path("charge_state");
+        String chargingState = chargeState.path("charging_state").asText("unknown");
+
+        Map<String, Object> status = new LinkedHashMap<>();
+        status.put("available", true);
+        status.put("charging", "Charging".equalsIgnoreCase(chargingState));
+        status.put("chargingState", chargingState);
+        status.put("batteryLevel", nullableInt(chargeState.path("battery_level")));
+        status.put("chargeLimitSoc", nullableInt(chargeState.path("charge_limit_soc")));
+        status.put("timeToFullCharge", nullableDouble(chargeState.path("time_to_full_charge")));
+        status.put("vehicleState", vehicleData.path("state").asText(""));
+        status.put("vinSuffix", suffix(vehicleData.path("vin").asText("")));
+
+        log.info("Tesla charging status read: chargingState={}, batteryLevel={}, vehicleState={}, vinSuffix={}",
+                status.get("chargingState"), status.get("batteryLevel"), status.get("vehicleState"), status.get("vinSuffix"));
+        return status;
+    }
+
+    /**
+     * Reads a combined snapshot of lock and charging status with one Tesla vehicle data call.
+     */
+    public Map<String, Object> getVehicleStatus() {
+        JsonNode vehicleData;
+        try {
+            vehicleData = fetchVehicleData();
+        } catch (HttpClientErrorException ex) {
+            if (isVehicleUnavailable(ex)) {
+                return unavailableStatus("combined", ex);
+            }
+            throw ex;
+        }
+        JsonNode vehicleState = vehicleData.path("vehicle_state");
+        JsonNode chargeState = vehicleData.path("charge_state");
+        JsonNode lockedNode = vehicleState.path("locked");
+        Boolean locked = lockedNode.isMissingNode() || lockedNode.isNull() ? null : lockedNode.asBoolean();
+        String chargingState = chargeState.path("charging_state").asText("unknown");
+
+        Map<String, Object> status = new LinkedHashMap<>();
+        status.put("available", true);
+        status.put("locked", locked);
+        status.put("lockState", locked == null ? "unknown" : locked ? "locked" : "unlocked");
+        status.put("charging", "Charging".equalsIgnoreCase(chargingState));
+        status.put("chargingState", chargingState);
+        status.put("batteryLevel", nullableInt(chargeState.path("battery_level")));
+        status.put("vehicleState", vehicleData.path("state").asText(""));
+        status.put("displayName", vehicleData.path("display_name").asText(""));
+        status.put("vinSuffix", suffix(vehicleData.path("vin").asText("")));
+
+        log.info("Tesla combined status read: lockState={}, chargingState={}, batteryLevel={}, vehicleState={}, vinSuffix={}",
+                status.get("lockState"), status.get("chargingState"), status.get("batteryLevel"),
+                status.get("vehicleState"), status.get("vinSuffix"));
+        return status;
     }
 
     /**
@@ -213,18 +315,27 @@ public class TeslaService {
         entity.setDisplayName(vehicle.getDisplayName());
         entity.setColor(vehicle.getColor());
         entity.setAccessType(vehicle.getAccessType());
+        entity.setState(vehicle.getState());
+        entity.setInService(vehicle.isInService());
 
         TeslaVehicle savedVehicle = vehicleRepository.save(entity);
-        log.info("Saved Tesla vehicle locally: id={}, displayName={}, vinSuffix={}",
-                savedVehicle.getId(), savedVehicle.getDisplayName(), suffix(savedVehicle.getVin()));
+        log.info("Saved Tesla vehicle locally: id={}, displayName={}, vinSuffix={}, state={}, inService={}",
+                savedVehicle.getId(), savedVehicle.getDisplayName(), suffix(savedVehicle.getVin()),
+                savedVehicle.getState(), savedVehicle.isInService());
     }
 
     /**
      * Chooses the vehicle target for commands from config first, then falls back to the token's client vehicle.
      */
     private String resolveVehicleIdOrVin() {
+        return resolveVehicleIdOrVin(false);
+    }
+
+    private String resolveVehicleIdOrVin(boolean wakeBeforeCommand) {
         if (teslaProperties.getVehicleIdOrVin() != null && !teslaProperties.getVehicleIdOrVin().isBlank()) {
-            log.debug("Using configured Tesla vehicle target: targetSuffix={}", suffix(teslaProperties.getVehicleIdOrVin()));
+            checkVehicleWakeup(teslaProperties.getVehicleIdOrVin(), wakeBeforeCommand);
+            log.debug("Using configured Tesla vehicle target: targetSuffix={}",
+                    suffix(teslaProperties.getVehicleIdOrVin()));
             return teslaProperties.getVehicleIdOrVin();
         }
 
@@ -233,6 +344,7 @@ public class TeslaService {
             log.error("No Tesla vehicle available for active client: tokenId={}", token.getId());
             throw new IllegalStateException("No Tesla vehicle configured for the active client");
         }
+        checkVehicleWakeup(token.getClient().getVehicles().getVin(), wakeBeforeCommand);
         log.debug("Using Tesla vehicle from active client: tokenId={}, targetSuffix={}",
                 token.getId(), suffix(token.getClient().getVehicles().getVin()));
         return token.getClient().getVehicles().getVin();
@@ -266,11 +378,155 @@ public class TeslaService {
                 .toUriString();
     }
 
+    private JsonNode fetchVehicleData() {
+        String vehicleIdOrVin = resolveVehicleIdOrVin(false);
+        String url = buildFleetUrl("/api/1/vehicles/" + vehicleIdOrVin + "/vehicle_data");
+        log.info("Fetching Tesla vehicle data: targetSuffix={}, url={}", suffix(vehicleIdOrVin), url);
+
+        try {
+            return requestVehicleData(url, vehicleIdOrVin);
+        } catch (HttpClientErrorException ex) {
+            if (isVehicleUnavailable(ex)) {
+                log.warn("Tesla vehicle data unavailable because vehicle is asleep/offline; waking and retrying: targetSuffix={}, retries={}, delayMs={}",
+                        suffix(vehicleIdOrVin), VEHICLE_DATA_WAKE_RETRY_COUNT, VEHICLE_DATA_WAKE_RETRY_DELAY_MS);
+                wakeVehicle(vehicleIdOrVin);
+                HttpClientErrorException lastUnavailable = ex;
+                for (int attempt = 1; attempt <= VEHICLE_DATA_WAKE_RETRY_COUNT; attempt++) {
+                    waitForWakeup(vehicleIdOrVin, attempt);
+                    try {
+                        return requestVehicleData(url, vehicleIdOrVin);
+                    } catch (HttpClientErrorException retryEx) {
+                        if (!isVehicleUnavailable(retryEx)) {
+                            throw retryEx;
+                        }
+                        lastUnavailable = retryEx;
+                        log.warn("Tesla vehicle still asleep/offline after wake retry: targetSuffix={}, attempt={}/{}",
+                                suffix(vehicleIdOrVin), attempt, VEHICLE_DATA_WAKE_RETRY_COUNT);
+                    }
+                }
+                throw lastUnavailable;
+            }
+            log.error("Tesla vehicle data fetch failed: targetSuffix={}, url={}, status={}, reason={}",
+                    suffix(vehicleIdOrVin), url, ex.getRawStatusCode(), ex.getMessage(), ex);
+            throw ex;
+        } catch (RestClientException ex) {
+            log.error("Tesla vehicle data fetch failed: targetSuffix={}, url={}, reason={}",
+                    suffix(vehicleIdOrVin), url, ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
+    private JsonNode requestVehicleData(String url, String vehicleIdOrVin) {
+        ResponseEntity<JsonNode> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                new HttpEntity<>(headers()),
+                JsonNode.class
+        );
+        JsonNode body = Optional.ofNullable(response.getBody())
+                .orElseThrow(() -> new IllegalStateException("Tesla vehicle data returned an empty response"));
+        JsonNode vehicleData = body.path("response");
+        if (vehicleData.isMissingNode() || vehicleData.isNull()) {
+            log.error("Tesla vehicle data response missing response node: status={}, targetSuffix={}",
+                    response.getStatusCodeValue(), suffix(vehicleIdOrVin));
+            throw new IllegalStateException("Tesla vehicle data response did not include response node");
+        }
+        log.info("Tesla vehicle data fetched: targetSuffix={}, status={}",
+                suffix(vehicleIdOrVin), response.getStatusCodeValue());
+        return vehicleData;
+    }
+
+    private void wakeVehicle(String vehicleIdOrVin) {
+        String wakeUrl = buildFleetUrl("/api/1/vehicles/" + vehicleIdOrVin + "/wake_up");
+        log.info("Sending Tesla wake-up before status read: targetSuffix={}, url={}", suffix(vehicleIdOrVin), wakeUrl);
+        restTemplate.exchange(wakeUrl, HttpMethod.POST, new HttpEntity<>(headers()), String.class);
+    }
+
+    private void checkVehicleWakeup(String vehicleIdOrVin, boolean wakeBeforeCommand) {
+        if (!wakeBeforeCommand || vehicleIdOrVin == null || vehicleIdOrVin.isBlank()) {
+            return;
+        }
+
+        findVehicleByTarget(vehicleIdOrVin)
+                .filter(vehicle -> isSleepingOrOffline(vehicle.getState()))
+                .ifPresent(vehicle -> {
+                    log.info("Vehicle state requires wake-up before command: targetSuffix={}, state={}, inService={}",
+                            suffix(vehicle.getVin()), vehicle.getState(), vehicle.isInService());
+                    wakeVehicle(vehicle.getVin());
+                    waitForWakeup(vehicle.getVin(), 1);
+                });
+    }
+
+    private Optional<TeslaVehicle> findVehicleByTarget(String vehicleIdOrVin) {
+        Optional<TeslaVehicle> vehicleByVin = vehicleRepository.findByVin(vehicleIdOrVin);
+        if (vehicleByVin.isPresent()) {
+            return vehicleByVin;
+        }
+
+        try {
+            return vehicleRepository.findByVehicleId(Long.valueOf(vehicleIdOrVin));
+        } catch (NumberFormatException ex) {
+            log.debug("Tesla vehicle target is not numeric, skipping vehicle_id lookup: targetSuffix={}",
+                    suffix(vehicleIdOrVin));
+            return Optional.empty();
+        }
+    }
+
+    private boolean isSleepingOrOffline(String state) {
+        return "asleep".equalsIgnoreCase(state) || "offline".equalsIgnoreCase(state);
+    }
+
+    private void waitForWakeup(String vehicleIdOrVin, int attempt) {
+        try {
+            log.info("Waiting before Tesla vehicle data wake retry: targetSuffix={}, attempt={}, delayMs={}",
+                    suffix(vehicleIdOrVin), attempt, VEHICLE_DATA_WAKE_RETRY_DELAY_MS);
+            Thread.sleep(VEHICLE_DATA_WAKE_RETRY_DELAY_MS);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while waiting for Tesla wake-up retry: targetSuffix={}", suffix(vehicleIdOrVin));
+        }
+    }
+
+    private boolean isVehicleUnavailable(HttpClientErrorException ex) {
+        return ex.getRawStatusCode() == 408
+                && ex.getResponseBodyAsString().contains("offline or asleep");
+    }
+
+    private Map<String, Object> unavailableStatus(String statusType, HttpClientErrorException ex) {
+        Map<String, Object> status = new LinkedHashMap<>();
+        status.put("available", false);
+        status.put("vehicleState", "asleep_or_offline");
+        status.put("message", "Vehicle is asleep or offline. Wake-up was sent; retry in a minute.");
+        status.put("teslaStatus", ex.getRawStatusCode());
+
+        if ("lock".equals(statusType) || "combined".equals(statusType)) {
+            status.put("locked", null);
+            status.put("lockState", "unknown");
+        }
+        if ("charging".equals(statusType) || "combined".equals(statusType)) {
+            status.put("charging", null);
+            status.put("chargingState", "unknown");
+            status.put("batteryLevel", null);
+        }
+
+        log.warn("Tesla status unavailable after wake retries: statusType={}, teslaStatus={}, response={}",
+                statusType, ex.getRawStatusCode(), ex.getResponseBodyAsString());
+        return status;
+    }
+
     private String suffix(String value) {
         if (value == null || value.isBlank()) {
             return "";
         }
         int start = Math.max(0, value.length() - 4);
         return value.substring(start);
+    }
+
+    private Integer nullableInt(JsonNode node) {
+        return node.isMissingNode() || node.isNull() ? null : node.asInt();
+    }
+
+    private Double nullableDouble(JsonNode node) {
+        return node.isMissingNode() || node.isNull() ? null : node.asDouble();
     }
 }

@@ -18,6 +18,10 @@ public class Vehicle {
     private String accessType;
     @JsonProperty("display_name")
     private String displayName;
+    @JsonProperty("state")
+    private String state;
+    @JsonProperty("in_service")
+    private boolean inService;
 
     public Vehicle() {}
 
@@ -48,6 +52,12 @@ public class Vehicle {
     public String getDisplayName() { return displayName; }
     public void setDisplayName(String displayName) { this.displayName = displayName; }
 
+    public String getState() { return state; }
+    public void setState(String state) { this.state = state; }
+
+    public boolean isInService() { return inService; }
+    public void setInService(boolean inService) { this.inService = inService; }
+
     @Override
     public String toString() {
         return "Vehicle{" +
@@ -57,6 +67,8 @@ public class Vehicle {
                 ", color='" + color + '\'' +
                 ", accessType='" + accessType + '\'' +
                 ", displayName='" + displayName + '\'' +
+                ", state='" + state + '\'' +
+                ", inService=" + inService +
                 '}';
     }
 }
