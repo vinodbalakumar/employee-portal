@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vinod Balakumar — Senior Software Engineer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --cream: #faf8f3;
+  --parchment: #f2ede3;
+  --warm-white: #fffef9;
+  --ink: #1a1714;
+  --ink-light: #3d3830;
+  --brown: #6b5b45;
+  --brown-light: #9c8b76;
+  --brown-faint: #e8e0d4;
+  --gold: #b8962e;
+  --gold-light: #d4af5a;
+  --gold-faint: #f5eed8;
+  --rule: rgba(107,91,69,0.2);
+  --rule-strong: rgba(107,91,69,0.4);
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans: 'Jost', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  background: rgba(250,248,243,0.93);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--rule);
+}
+.nav-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 3rem;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-logo {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.nav-logo span { color: var(--gold); }
+.nav-links { display: flex; gap: 2.5rem; list-style: none; }
+.nav-links a {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brown);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--gold); }
+
+.wrap { max-width: 1100px; margin: 0 auto; padding: 0 3rem; position: relative; z-index: 1; }
+
+/* HERO */
+.hero {
+  padding: 120px 0 80px;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 6rem;
+  align-items: center;
+  border-bottom: 1px solid var(--rule);
+}
+.hero-overline {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hero-overline::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--gold);
+}
+.hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(52px, 6vw, 80px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -1px;
+  color: var(--ink);
+  margin-bottom: 0.4rem;
+}
+.hero h1 em { font-style: italic; color: var(--brown); }
+.hero-title {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brown-light);
+  margin: 1.5rem 0 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--rule);
+}
+.hero-bio {
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 300;
+  line-height: 1.8;
+  color: var(--ink-light);
+  max-width: 480px;
+  margin-bottom: 2.5rem;
+}
+.hero-bio em { font-style: italic; color: var(--brown); }
+.hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 28px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: all 0.25s;
+}
+.btn-primary { background: var(--ink); color: var(--cream); border: 1px solid var(--ink); }
+.btn-primary:hover { background: var(--brown); border-color: var(--brown); }
+.btn-ghost { background: transparent; color: var(--brown); border: 1px solid var(--rule-strong); }
+.btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+
+/* PROFILE IMAGE */
+.hero-image-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+}
+.hero-image-frame {
+  position: relative;
+  width: 260px;
+  height: 320px;
+}
+.hero-image-frame::before {
+  content: '';
+  position: absolute;
+  top: 14px; left: 14px;
+  right: -14px; bottom: -14px;
+  border: 1px solid var(--gold-light);
+  z-index: 0;
+}
+.hero-image-frame img {
+  position: relative;
+  z-index: 1;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  filter: sepia(6%) contrast(1.04);
+  display: block;
+}
+.hero-image-caption {
+  font-family: var(--serif);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--brown-light);
+  text-align: center;
+}
+
+/* SECTIONS */
+.section { padding: 5rem 0; border-bottom: 1px solid var(--rule); }
+.section-header {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 4rem;
+  margin-bottom: 3.5rem;
+}
+.section-num {
+  font-family: var(--serif);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+  padding-top: 6px;
+  text-align: right;
+}
+.section-title {
+  font-family: var(--serif);
+  font-size: 38px;
+  font-weight: 300;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+  line-height: 1;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* SKILLS */
+.skills-body {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 4rem;
+}
+.skills-list { display: flex; flex-direction: column; gap: 2rem; }
+.skill-group-name {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.skill-item {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--ink-light);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--brown-faint);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.skill-item::before { content: '—'; color: var(--gold-light); font-size: 12px; }
+
+/* EXPERIENCE */
+.exp-list { display: flex; flex-direction: column; }
+.exp-item {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 4rem;
+  padding: 2.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.exp-item:last-child { border-bottom: none; }
+.exp-period {
+  font-family: var(--serif);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--brown-light);
+  line-height: 1.6;
+  text-align: right;
+}
+.exp-type {
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-align: right;
+  margin-top: 6px;
+}
+.exp-loc {
+  font-family: var(--sans);
+  font-size: 10px;
+  color: var(--brown-light);
+  text-align: right;
+  margin-top: 4px;
+}
+.exp-role {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink);
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.exp-company {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+.exp-desc {
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--ink-light);
+  max-width: 520px;
+}
+.exp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 1rem; }
+.exp-tag {
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brown);
+  padding: 4px 12px;
+  border: 1px solid var(--rule-strong);
+  background: var(--parchment);
+}
+
+/* CONNECT */
+.connect-body { display: grid; grid-template-columns: 180px 1fr; gap: 4rem; }
+.connect-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--rule);
+  text-decoration: none;
+  color: var(--ink-light);
+  transition: all 0.2s;
+}
+.connect-link:first-child { border-top: 1px solid var(--rule); }
+.connect-link:hover { color: var(--gold); padding-left: 8px; }
+.connect-link-left { display: flex; align-items: center; gap: 1rem; }
+.connect-link-icon {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--rule-strong);
+  background: var(--parchment);
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.connect-link:hover .connect-link-icon { border-color: var(--gold); background: var(--gold-faint); }
+.connect-link-icon svg { width: 15px; height: 15px; }
+.connect-name { font-family: var(--serif); font-size: 19px; }
+.connect-handle { font-family: var(--sans); font-size: 11px; color: var(--brown-light); }
+.connect-arrow { font-size: 18px; color: var(--gold-light); transition: transform 0.2s; }
+.connect-link:hover .connect-arrow { transform: translateX(4px); }
+
+/* STATS BAR */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2.5rem 0;
+  border-bottom: 1px solid var(--rule);
+  gap: 2rem;
+}
+.stat-item { text-align: center; flex: 1; }
+.stat-num {
+  font-family: var(--serif);
+  font-size: 36px;
+  font-weight: 300;
+  color: var(--gold);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.stat-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--brown-light);
+  margin-top: 6px;
+}
+.stat-divider {
+  width: 1px;
+  height: 48px;
+  background: var(--rule-strong);
+  flex-shrink: 0;
+}
+
+/* FOOTER */
+footer { padding: 2.5rem 0; border-top: 1px solid var(--rule); }
+.footer-inner {
+  max-width: 1100px; margin: 0 auto; padding: 0 3rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.footer-name { font-family: var(--serif); font-size: 16px; font-style: italic; color: var(--brown); }
+.footer-copy { font-family: var(--sans); font-size: 10px; letter-spacing: 0.1em; color: var(--brown-light); }
+.footer-rule { font-family: var(--serif); font-size: 14px; font-style: italic; color: var(--gold-light); }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .stats-bar { flex-wrap: wrap; gap: 1.5rem; }
+  .stat-divider { display: none; }
+  .wrap, .nav-inner, .footer-inner { padding: 0 1.5rem; }
+  .nav-links { display: none; }
+  .hero { grid-template-columns: 1fr; gap: 3rem; padding-top: 100px; }
+  .hero-image-wrap { order: -1; }
+  .hero-image-frame { width: 200px; height: 240px; }
+  .section-header, .skills-body, .connect-body { grid-template-columns: 1fr; gap: 1rem; }
+  .section-num { text-align: left; }
+  .exp-item { grid-template-columns: 1fr; gap: 0.5rem; }
+  .exp-period, .exp-type, .exp-loc { text-align: left; }
+  .footer-inner { flex-direction: column; gap: 0.5rem; text-align: center; }
+}
+
+/* ANIMATIONS */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero-overline { animation: fadeIn 0.7s ease 0.1s both; }
+.hero h1 { animation: fadeIn 0.7s ease 0.2s both; }
+.hero-title { animation: fadeIn 0.7s ease 0.3s both; }
+.hero-bio { animation: fadeIn 0.7s ease 0.4s both; }
+.hero-cta { animation: fadeIn 0.7s ease 0.5s both; }
+.hero-image-wrap { animation: fadeIn 0.9s ease 0.3s both; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">Vinod <span>Balakumar</span></a>
+    <ul class="nav-links">
+      <li><a href="#skills">Expertise</a></li>
+      <li><a href="#experience">Experience</a></li>
+      <li><a href="#connect">Contact</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main>
+
+  <!-- HERO -->
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-text">
+        <div class="hero-overline">Senior Software Engineer &nbsp;·&nbsp; 10+ Years Experience</div>
+        <h1>Vinod<br><em>Balakumar</em></h1>
+        <div class="hero-title">Full Stack Developer &nbsp;·&nbsp; Cloud Architect &nbsp;·&nbsp; AI/ML Practitioner &nbsp;·&nbsp; Phoenix, Arizona</div>
+        <p class="hero-bio">
+          A decade engineering <em>enterprise-scale distributed systems</em> — from global banks to Silicon Valley icons. I architect and deliver cloud-native full-stack platforms across AWS &amp; Azure, blending microservices mastery with modern AI/ML integrations to build systems that truly endure.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="https://www.linkedin.com/in/vinod-balakumar-panchaparvala-39332986" target="_blank">LinkedIn Profile</a>
+          <a class="btn btn-ghost" href="https://github.com/vinodbalakumar" target="_blank">GitHub</a>
+        </div>
+      </div>
+
+      <div class="hero-image-wrap">
+        <div class="hero-image-frame">
+          <img src="https://media.licdn.com/dms/image/v2/D5603AQFJ7Se7MKy3ng/profile-displayphoto-shrink_800_800/B56ZQxoRUVH0Ak-/0/1735999446637?e=1780531200&v=beta&t=iuPjGUHIm-0SbrMRE5QBFP2ec-DoDwQXsq21_FcJiRg" alt="Vinod Balakumar" />
+        </div>
+        <div class="hero-image-caption">Vinod Balakumar &mdash; Phoenix, AZ</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="wrap">
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-num">10+</div>
+        <div class="stat-label">Years of Experience</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-num">5</div>
+        <div class="stat-label">Enterprise Clients</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-num">AWS</div>
+        <div class="stat-label">+ Azure Certified</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-num">3</div>
+        <div class="stat-label">Countries Worked In</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SKILLS -->
+  <div class="wrap">
+    <section class="section" id="skills">
+      <div class="section-header">
+        <div class="section-num">I.</div>
+        <div class="section-title">Areas of Expertise</div>
+      </div>
+      <div class="skills-body">
+        <div></div>
+        <div class="skills-list">
+
+          <div class="skill-group">
+            <div class="skill-group-name">Backend Engineering</div>
+            <div class="skill-item">Java 17+ &amp; Spring Boot 3.x</div>
+            <div class="skill-item">Spring Cloud &amp; Spring WebFlux (Reactive)</div>
+            <div class="skill-item">REST APIs, GraphQL &amp; gRPC</div>
+            <div class="skill-item">Node.js &amp; Python (FastAPI)</div>
+            <div class="skill-item">Quarkus &amp; Micronaut</div>
+          </div>
+
+          <div class="skill-group">
+            <div class="skill-group-name">Frontend Development</div>
+            <div class="skill-item">React 18+ &amp; Next.js (App Router)</div>
+            <div class="skill-item">Angular 17+ &amp; RxJS</div>
+            <div class="skill-item">TypeScript &amp; JavaScript ES2024</div>
+            <div class="skill-item">Redux Toolkit &amp; Zustand</div>
+            <div class="skill-item">Tailwind CSS &amp; Material UI</div>
+          </div>
+
+          <div class="skill-group">
+            <div class="skill-group-name">Cloud — AWS</div>
+            <div class="skill-item">EC2, ECS, EKS &amp; Lambda (Serverless)</div>
+            <div class="skill-item">API Gateway, SQS, SNS &amp; EventBridge</div>
+            <div class="skill-item">S3, RDS, DynamoDB &amp; Aurora</div>
+            <div class="skill-item">CloudFormation &amp; CDK</div>
+            <div class="skill-item">AWS Bedrock &amp; SageMaker</div>
+          </div>
+
+          <div class="skill-group">
+            <div class="skill-group-name">Cloud — Microsoft Azure</div>
+            <div class="skill-item">Azure Kubernetes Service (AKS)</div>
+            <div class="skill-item">Azure Service Bus &amp; Event Hubs</div>
+            <div class="skill-item">Azure Functions &amp; Logic Apps</div>
+            <div class="skill-item">Azure DevOps &amp; Pipelines</div>
+            <div class="skill-item">Azure OpenAI &amp; Cognitive Services</div>
+          </div>
+
+          <div class="skill-group">
+            <div class="skill-group-name">Data &amp; Streaming</div>
+            <div class="skill-item">Apache Kafka &amp; Kafka Streams</div>
+            <div class="skill-item">Apache Flink &amp; Spark Streaming</div>
+            <div class="skill-item">Elasticsearch &amp; OpenSearch (ELK/EOS)</div>
+            <div class="skill-item">PostgreSQL, MongoDB, Redis &amp; Cassandra</div>
+            <div class="skill-item">Snowflake &amp; dbt (Data Pipelines)</div>
+          </div>
+
+          <div class="skill-group">
+            <div class="skill-group-name">AI / ML &amp; GenAI</div>
+            <div class="skill-item">LLM Integration (OpenAI, Claude, Gemini)</div>
+            <div class="skill-item">LangChain &amp; LlamaIndex (RAG Pipelines)</div>
+            <div class="skill-item">Vector Databases (Pinecone, pgvector)</div>
+            <div class="skill-item">Prompt Engineering &amp; Fine-Tuning</div>
+            <div class="skill-item">AI-Augmented API &amp; Agent Design</div>
+          </div>
+
+          <div class="skill-group">
+            <div class="skill-group-name">DevOps &amp; Platform Engineering</div>
+            <div class="skill-item">Docker, Kubernetes &amp; Helm Charts</div>
+            <div class="skill-item">OpenShift &amp; Rancher</div>
+            <div class="skill-item">Terraform, Pulumi &amp; Ansible</div>
+            <div class="skill-item">GitHub Actions, Jenkins &amp; ArgoCD</div>
+            <div class="skill-item">Grafana, Prometheus &amp; Datadog</div>
+          </div>
+
+          <div class="skill-group">
+            <div class="skill-group-name">Architecture &amp; Methodology</div>
+            <div class="skill-item">Microservices &amp; Domain-Driven Design</div>
+            <div class="skill-item">Event-Driven Architecture &amp; CQRS / Event Sourcing</div>
+            <div class="skill-item">Service Mesh (Istio, Linkerd)</div>
+            <div class="skill-item">API-First &amp; Contract-Driven Development</div>
+            <div class="skill-item">Agile / SAFe &amp; Test-Driven Development</div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- EXPERIENCE -->
+  <div class="wrap">
+    <section class="section" id="experience">
+      <div class="section-header">
+        <div class="section-num">II.</div>
+        <div class="section-title">Professional Experience</div>
+      </div>
+      <div class="exp-list">
+
+        <div class="exp-item">
+          <div class="exp-meta">
+            <div class="exp-period">Present</div>
+            <div class="exp-loc">Phoenix, AZ</div>
+          </div>
+          <div class="exp-content">
+            <div class="exp-role">Senior Software Engineer</div>
+            <div class="exp-company">LexisNexis Risk Solutions</div>
+            <p class="exp-desc">Building high-performance data intelligence platforms for legal and risk analytics at global scale. Architecting cloud-native microservices on AWS, integrating AI/ML models for predictive risk scoring, and leading platform modernisation initiatives serving millions of legal and compliance professionals worldwide.</p>
+            <div class="exp-tags">
+              <span class="exp-tag">Java</span><span class="exp-tag">Spring Boot</span><span class="exp-tag">AWS</span><span class="exp-tag">Kafka</span><span class="exp-tag">Microservices</span><span class="exp-tag">AI Integration</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="exp-item">
+          <div class="exp-meta">
+            <div class="exp-period">Jun 2023 – Present<br><em style="font-size:12px">3 years</em></div>
+            <div class="exp-type">Contract</div>
+            <div class="exp-loc">Phoenix, AZ · Hybrid</div>
+          </div>
+          <div class="exp-content">
+            <div class="exp-role">Senior Software Engineer</div>
+            <div class="exp-company">Wells Fargo</div>
+            <p class="exp-desc">Engineered mission-critical banking systems processing millions of daily transactions. Designed event-driven microservices on AWS EKS with Kafka Streams for real-time payment pipelines, implemented Azure DevOps CI/CD automation, and drove cloud migration from on-premise to multi-cloud infrastructure.</p>
+            <div class="exp-tags">
+              <span class="exp-tag">AWS EKS</span><span class="exp-tag">Azure DevOps</span><span class="exp-tag">Kafka Streams</span><span class="exp-tag">Spring Cloud</span><span class="exp-tag">Terraform</span><span class="exp-tag">CI/CD</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="exp-item">
+          <div class="exp-meta">
+            <div class="exp-period">Nov 2021 – Apr 2023<br><em style="font-size:12px">1 yr 6 mo</em></div>
+            <div class="exp-type">Contract</div>
+            <div class="exp-loc">India · Remote</div>
+          </div>
+          <div class="exp-content">
+            <div class="exp-role">Senior Software Engineer</div>
+            <div class="exp-company">Apple</div>
+            <p class="exp-desc">Built resilient, high-throughput backend services for Apple's global supply chain and retail systems. Delivered reactive microservices using Spring WebFlux and Java, deployed on AWS Lambda and ECS, powering consumer-facing products used by hundreds of millions worldwide. Championed API-first design and contract-driven development practices.</p>
+            <div class="exp-tags">
+              <span class="exp-tag">Java</span><span class="exp-tag">Spring WebFlux</span><span class="exp-tag">AWS Lambda</span><span class="exp-tag">Microservices</span><span class="exp-tag">API-First</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="exp-item">
+          <div class="exp-meta">
+            <div class="exp-period">Jan 2020 – Nov 2021<br><em style="font-size:12px">1 yr 11 mo</em></div>
+            <div class="exp-type">Full-time</div>
+            <div class="exp-loc">Chennai, India</div>
+          </div>
+          <div class="exp-content">
+            <div class="exp-role">Senior Software Engineer</div>
+            <div class="exp-company">Standard Chartered Bank</div>
+            <p class="exp-desc">Modernised core banking platforms at one of the world's largest financial institutions. Implemented Elastic Stack observability and OpenShift container orchestration to replace fragile legacy infrastructure.</p>
+            <div class="exp-tags">
+              <span class="exp-tag">OpenShift</span><span class="exp-tag">Elastic Stack</span><span class="exp-tag">ELK</span><span class="exp-tag">Docker</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="exp-item">
+          <div class="exp-meta">
+            <div class="exp-period">Feb 2017 – Dec 2019<br><em style="font-size:12px">2 yrs 11 mo</em></div>
+            <div class="exp-type">Full-time</div>
+            <div class="exp-loc">Hyderabad, India</div>
+          </div>
+          <div class="exp-content">
+            <div class="exp-role">Junior Engineer</div>
+            <div class="exp-company">Dhanush InfoTech</div>
+            <p class="exp-desc">Learned end-to-end application lifecycle and architecture as a fresher. Built full-stack web applications in AngularJS, implemented containerisation with Docker Swarm, and established the foundation of a decade-long engineering career.</p>
+            <div class="exp-tags">
+              <span class="exp-tag">AngularJS</span><span class="exp-tag">Docker Swarm</span><span class="exp-tag">Full Stack</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <!-- CONNECT -->
+  <div class="wrap">
+    <section class="section" id="connect">
+      <div class="section-header">
+        <div class="section-num">III.</div>
+        <div class="section-title">Get in Touch</div>
+      </div>
+      <div class="connect-body">
+        <div></div>
+        <div>
+          <a class="connect-link" href="https://www.linkedin.com/in/vinod-balakumar-panchaparvala-39332986" target="_blank">
+            <div class="connect-link-left">
+              <div class="connect-link-icon">
+                <svg viewBox="0 0 24 24" fill="var(--brown)"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+              </div>
+              <div>
+                <div class="connect-name">LinkedIn</div>
+                <div class="connect-handle">vinod-balakumar-panchaparvala</div>
+              </div>
+            </div>
+            <div class="connect-arrow">→</div>
+          </a>
+
+          <a class="connect-link" href="https://github.com/vinodbalakumar" target="_blank">
+            <div class="connect-link-left">
+              <div class="connect-link-icon">
+                <svg viewBox="0 0 24 24" fill="var(--brown)"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+              </div>
+              <div>
+                <div class="connect-name">GitHub</div>
+                <div class="connect-handle">vinodbalakumar</div>
+              </div>
+            </div>
+            <div class="connect-arrow">→</div>
+          </a>
+
+          <a class="connect-link" href="https://www.instagram.com/vinod_balakumar/" target="_blank">
+            <div class="connect-link-left">
+              <div class="connect-link-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="1.6"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.7" fill="var(--brown)" stroke="none"/></svg>
+              </div>
+              <div>
+                <div class="connect-name">Instagram</div>
+                <div class="connect-handle">@vinod_balakumar</div>
+              </div>
+            </div>
+            <div class="connect-arrow">→</div>
+          </a>
+
+          <a class="connect-link" href="https://www.youtube.com/user/Vinodbalakumar" target="_blank">
+            <div class="connect-link-left">
+              <div class="connect-link-icon">
+                <svg viewBox="0 0 24 24" fill="var(--brown)"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+              </div>
+              <div>
+                <div class="connect-name">YouTube</div>
+                <div class="connect-handle">Vinodbalakumar</div>
+              </div>
+            </div>
+            <div class="connect-arrow">→</div>
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-name">Vinod Balakumar</div>
+    <div class="footer-rule">— crafted with care —</div>
+    <div class="footer-copy">© 2026 · Phoenix, Arizona</div>
+  </div>
+</footer>
+
+</body>
+</html>
