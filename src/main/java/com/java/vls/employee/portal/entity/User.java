@@ -51,6 +51,10 @@ public class User {
     @UpdateTimestamp
     private LocalDateTime updatedDate;
 
+
+    @CreationTimestamp
+    private LocalDateTime profileCreatedOn;
+
     // Constructors, Getters, and Setters
 
     public User() {}

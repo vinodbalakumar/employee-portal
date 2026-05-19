@@ -2,12 +2,16 @@ package com.java.vls.employee.portal.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDateTime;
+import java.time.Duration;
+import java.util.Date;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.java.vls.employee.portal.configuration.TeslaProperties;
 import com.java.vls.employee.portal.dto.request.TeslaTokenResponse;
@@ -17,10 +21,12 @@ import com.java.vls.employee.portal.entity.TeslaTokens;
 import com.java.vls.employee.portal.entity.TeslaVehicle;
 import com.java.vls.employee.portal.repository.TeslaTokenRepository;
 import com.java.vls.employee.portal.repository.VehicleRepository;
+import javax.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -35,11 +41,15 @@ public class TeslaService {
 
     private static final int VEHICLE_DATA_WAKE_RETRY_COUNT = 3;
     private static final long VEHICLE_DATA_WAKE_RETRY_DELAY_MS = 10000L;
+    private static final int COMMAND_WAKE_RETRY_COUNT = 4;
+    private static final long COMMAND_WAKE_RETRY_DELAY_MS = 4000L;
+    private static final Duration VEHICLE_STATE_CACHE_TTL = Duration.ofMinutes(2);
 
     private final RestTemplate restTemplate;
     private final TeslaProperties teslaProperties;
     private final VehicleRepository vehicleRepository;
     private final TeslaTokenRepository tokenRepository;
+    private final ExecutorService commandExecutor = Executors.newFixedThreadPool(2);
 
     public TeslaService(
             RestTemplate restTemplate,
@@ -100,23 +110,53 @@ public class TeslaService {
      * @return raw Tesla/proxy response
      */
     public ResponseEntity<String> executeCommand(String command, Map<String, Object> body) {
-        String vehicleIdOrVin = resolveVehicleIdOrVin(!"wake_up".equals(command));
+        boolean wakeCommand = "wake_up".equals(command);
+        String vehicleIdOrVin = resolveVehicleIdOrVin(false);
         String url = buildCommandUrl(command, vehicleIdOrVin);
         Map<String, Object> requestBody = body == null ? Collections.emptyMap() : body;
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers());
 
+        if (!wakeCommand && shouldQueueCommandForWake(vehicleIdOrVin)) {
+            queueCommandAfterWake(command, vehicleIdOrVin, requestBody, "vehicle cache not freshly online");
+            return ResponseEntity.status(HttpStatus.ACCEPTED)
+                    .body("Command accepted. Vehicle is waking and command will run in background.");
+        }
+
         log.info("Executing Tesla command: command={}, targetSuffix={}, url={}, bodyKeys={}",
                 command, suffix(vehicleIdOrVin), url, requestBody.keySet());
         try {
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+            ResponseEntity<String> response = executeCommandRequest(url, entity, command, vehicleIdOrVin);
             log.info("Tesla command completed: command={}, targetSuffix={}, status={}",
                     command, suffix(vehicleIdOrVin), response.getStatusCodeValue());
+            markVehicleOnline(vehicleIdOrVin, command);
             return response;
+        } catch (HttpClientErrorException ex) {
+            if (!wakeCommand && isVehicleUnavailable(ex)) {
+                queueCommandAfterWake(command, vehicleIdOrVin, requestBody, "proxy reported vehicle unavailable");
+                return ResponseEntity.status(HttpStatus.ACCEPTED)
+                        .body("Command accepted. Vehicle is waking and command will run in background.");
+            }
+            log.error("Tesla command failed: command={}, targetSuffix={}, url={}, status={}, reason={}",
+                    command, suffix(vehicleIdOrVin), url, ex.getRawStatusCode(), ex.getMessage(), ex);
+            throw ex;
         } catch (RestClientException ex) {
             log.error("Tesla command failed: command={}, targetSuffix={}, url={}, reason={}",
                     command, suffix(vehicleIdOrVin), url, ex.getMessage(), ex);
             throw ex;
         }
+    }
+
+    private ResponseEntity<String> executeCommandRequest(
+            String url,
+            HttpEntity<Map<String, Object>> entity,
+            String command,
+            String vehicleIdOrVin) {
+        return restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+    }
+
+    @PreDestroy
+    public void shutdownCommandExecutor() {
+        commandExecutor.shutdownNow();
     }
 
     /**
@@ -433,6 +473,7 @@ public class TeslaService {
         }
         log.info("Tesla vehicle data fetched: targetSuffix={}, status={}",
                 suffix(vehicleIdOrVin), response.getStatusCodeValue());
+        updateCachedVehicleState(vehicleData);
         return vehicleData;
     }
 
@@ -448,13 +489,156 @@ public class TeslaService {
         }
 
         findVehicleByTarget(vehicleIdOrVin)
-                .filter(vehicle -> isSleepingOrOffline(vehicle.getState()))
                 .ifPresent(vehicle -> {
-                    log.info("Vehicle state requires wake-up before command: targetSuffix={}, state={}, inService={}",
-                            suffix(vehicle.getVin()), vehicle.getState(), vehicle.isInService());
-                    wakeVehicle(vehicle.getVin());
-                    waitForWakeup(vehicle.getVin(), 1);
+                    if (isFreshOnlineState(vehicle)) {
+                        log.info("Using cached online vehicle state before command: targetSuffix={}, state={}, ageSeconds={}, ttlSeconds={}",
+                                suffix(vehicle.getVin()), vehicle.getState(), cacheAgeSeconds(vehicle),
+                                VEHICLE_STATE_CACHE_TTL.getSeconds());
+                        return;
+                    }
+
+                    if ("online".equalsIgnoreCase(vehicle.getState())) {
+                        log.info("Cached online vehicle state expired; waking before command: targetSuffix={}, ageSeconds={}, ttlSeconds={}",
+                                suffix(vehicle.getVin()), cacheAgeSeconds(vehicle), VEHICLE_STATE_CACHE_TTL.getSeconds());
+                        wakeVehicle(vehicle.getVin());
+                        markVehicleState(vehicle, "online", "expired online cache wake before command");
+                        waitForCommandWakeup(vehicle.getVin(), "pre-command", 1);
+                        return;
+                    }
+
+                    if (isSleepingOrOffline(vehicle.getState())) {
+                        log.info("Vehicle state requires wake-up before command: targetSuffix={}, state={}, ageSeconds={}, ttlSeconds={}, inService={}",
+                                suffix(vehicle.getVin()), vehicle.getState(), cacheAgeSeconds(vehicle),
+                                VEHICLE_STATE_CACHE_TTL.getSeconds(), vehicle.isInService());
+                        wakeVehicle(vehicle.getVin());
+                        markVehicleState(vehicle, "online", "wake request accepted before command");
+                        waitForCommandWakeup(vehicle.getVin(), "pre-command", 1);
+                    }
                 });
+    }
+
+    private boolean shouldQueueCommandForWake(String vehicleIdOrVin) {
+        Optional<TeslaVehicle> cachedVehicle = findVehicleByTarget(vehicleIdOrVin);
+        if (cachedVehicle.isEmpty()) {
+            return false;
+        }
+
+        TeslaVehicle vehicle = cachedVehicle.get();
+        if (isFreshOnlineState(vehicle)) {
+            log.info("Using cached online vehicle state before command: targetSuffix={}, state={}, ageSeconds={}, ttlSeconds={}",
+                    suffix(vehicle.getVin()), vehicle.getState(), cacheAgeSeconds(vehicle),
+                    VEHICLE_STATE_CACHE_TTL.getSeconds());
+            return false;
+        }
+
+        log.info("Queueing command because cached vehicle state is not freshly online: targetSuffix={}, state={}, ageSeconds={}, ttlSeconds={}",
+                suffix(vehicle.getVin()), vehicle.getState(), cacheAgeSeconds(vehicle), VEHICLE_STATE_CACHE_TTL.getSeconds());
+        return true;
+    }
+
+    private void queueCommandAfterWake(
+            String command,
+            String vehicleIdOrVin,
+            Map<String, Object> requestBody,
+            String reason) {
+        findVehicleByTarget(vehicleIdOrVin)
+                .ifPresent(vehicle -> markVehicleState(vehicle, "waking", reason));
+
+        commandExecutor.submit(() -> runCommandAfterWake(command, vehicleIdOrVin, requestBody, reason));
+    }
+
+    private void runCommandAfterWake(
+            String command,
+            String vehicleIdOrVin,
+            Map<String, Object> requestBody,
+            String reason) {
+        String url = buildCommandUrl(command, vehicleIdOrVin);
+        log.info("Queued Tesla command started: command={}, targetSuffix={}, reason={}",
+                command, suffix(vehicleIdOrVin), reason);
+
+        try {
+            wakeVehicle(vehicleIdOrVin);
+        } catch (RestClientException ex) {
+            log.warn("Queued Tesla wake request failed before command retry: command={}, targetSuffix={}, reason={}",
+                    command, suffix(vehicleIdOrVin), ex.getMessage());
+        }
+
+        for (int attempt = 1; attempt <= COMMAND_WAKE_RETRY_COUNT; attempt++) {
+            waitForCommandWakeup(vehicleIdOrVin, command, attempt);
+            try {
+                ResponseEntity<String> response = restTemplate.exchange(
+                        url,
+                        HttpMethod.POST,
+                        new HttpEntity<>(requestBody, headers()),
+                        String.class
+                );
+                log.info("Queued Tesla command completed: command={}, targetSuffix={}, status={}, attempt={}",
+                        command, suffix(vehicleIdOrVin), response.getStatusCodeValue(), attempt);
+                markVehicleOnline(vehicleIdOrVin, "queued " + command);
+                return;
+            } catch (HttpClientErrorException ex) {
+                if (!isVehicleUnavailable(ex)) {
+                    log.error("Queued Tesla command failed: command={}, targetSuffix={}, status={}, reason={}",
+                            command, suffix(vehicleIdOrVin), ex.getRawStatusCode(), ex.getMessage(), ex);
+                    return;
+                }
+                log.warn("Queued Tesla command waiting for vehicle wake: command={}, targetSuffix={}, attempt={}/{}",
+                        command, suffix(vehicleIdOrVin), attempt, COMMAND_WAKE_RETRY_COUNT);
+            } catch (RestClientException ex) {
+                log.error("Queued Tesla command failed: command={}, targetSuffix={}, reason={}",
+                        command, suffix(vehicleIdOrVin), ex.getMessage(), ex);
+                return;
+            }
+        }
+
+        findVehicleByTarget(vehicleIdOrVin)
+                .ifPresent(vehicle -> markVehicleState(vehicle, "asleep", "queued " + command + " exhausted retries"));
+        log.warn("Queued Tesla command exhausted wake retries: command={}, targetSuffix={}",
+                command, suffix(vehicleIdOrVin));
+    }
+
+    private boolean isFreshOnlineState(TeslaVehicle vehicle) {
+        return "online".equalsIgnoreCase(vehicle.getState()) && isCacheFresh(vehicle.getUpdatedAt());
+    }
+
+    private boolean isCacheFresh(Date updatedAt) {
+        if (updatedAt == null) {
+            return false;
+        }
+        long ageMs = System.currentTimeMillis() - updatedAt.getTime();
+        return ageMs >= 0 && ageMs <= VEHICLE_STATE_CACHE_TTL.toMillis();
+    }
+
+    private long cacheAgeSeconds(TeslaVehicle vehicle) {
+        Date updatedAt = vehicle.getUpdatedAt();
+        if (updatedAt == null) {
+            return -1L;
+        }
+        long ageMs = Math.max(0L, System.currentTimeMillis() - updatedAt.getTime());
+        return ageMs / 1000L;
+    }
+
+    private void markVehicleOnline(String vehicleIdOrVin, String reason) {
+        findVehicleByTarget(vehicleIdOrVin)
+                .ifPresent(vehicle -> markVehicleState(vehicle, "online", reason));
+    }
+
+    private void markVehicleState(TeslaVehicle vehicle, String state, String reason) {
+        vehicle.setState(state);
+        TeslaVehicle savedVehicle = vehicleRepository.save(vehicle);
+        log.info("Cached Tesla vehicle state updated: targetSuffix={}, state={}, reason={}",
+                suffix(savedVehicle.getVin()), savedVehicle.getState(), reason);
+    }
+
+    private void updateCachedVehicleState(JsonNode vehicleData) {
+        String vin = vehicleData.path("vin").asText("");
+        String state = vehicleData.path("state").asText("");
+        if (vin.isBlank() || state.isBlank()) {
+            return;
+        }
+
+        vehicleRepository.findByVin(vin)
+                .ifPresent(vehicle -> markVehicleState(vehicle, state, "vehicle_data response"));
     }
 
     private Optional<TeslaVehicle> findVehicleByTarget(String vehicleIdOrVin) {
@@ -487,8 +671,20 @@ public class TeslaService {
         }
     }
 
+    private void waitForCommandWakeup(String vehicleIdOrVin, String command, int attempt) {
+        try {
+            log.info("Waiting before Tesla command wake retry: command={}, targetSuffix={}, attempt={}, delayMs={}",
+                    command, suffix(vehicleIdOrVin), attempt, COMMAND_WAKE_RETRY_DELAY_MS);
+            Thread.sleep(COMMAND_WAKE_RETRY_DELAY_MS);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while waiting for Tesla command wake retry: command={}, targetSuffix={}",
+                    command, suffix(vehicleIdOrVin));
+        }
+    }
+
     private boolean isVehicleUnavailable(HttpClientErrorException ex) {
-        return ex.getRawStatusCode() == 408
+        return (ex.getRawStatusCode() == 408 || ex.getRawStatusCode() == 500)
                 && ex.getResponseBodyAsString().contains("offline or asleep");
     }
 
