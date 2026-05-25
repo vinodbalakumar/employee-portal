@@ -41,7 +41,7 @@ public class TeslaVehicle {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
-    private Client client;
+    private TeslaClient client;
 
     @Column(name = "created_at", updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
@@ -103,8 +103,8 @@ public class TeslaVehicle {
     public Integer getApiVersion() { return apiVersion; }
     public void setApiVersion(Integer apiVersion) { this.apiVersion = apiVersion; }
 
-    public Client getClient() { return client; }
-    public void setClient(Client client) { this.client = client; }
+    public TeslaClient getClient() { return client; }
+    public void setClient(TeslaClient client) { this.client = client; }
 
     public java.util.Date getCreatedAt() { return createdAt; }
     public java.util.Date getUpdatedAt() { return updatedAt; }

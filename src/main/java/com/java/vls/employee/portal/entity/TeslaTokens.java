@@ -33,7 +33,7 @@ public class TeslaTokens {
 
     @OneToOne
     @JoinColumn(name = "client_id")
-    private Client client;
+    private TeslaClient client;
 
     public TeslaTokens() {
     }
@@ -113,11 +113,11 @@ public class TeslaTokens {
         this.updatedAt = updatedAt;
     }
 
-    public Client getClient() {
+    public TeslaClient getClient() {
         return client;
     }
 
-    public void setClient(Client client) {
+    public void setClient(TeslaClient client) {
         this.client = client;
     }
 }

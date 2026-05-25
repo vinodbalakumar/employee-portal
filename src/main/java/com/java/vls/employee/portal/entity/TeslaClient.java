@@ -1,12 +1,13 @@
 package com.java.vls.employee.portal.entity;
 
 import javax.persistence.*;
+
 import java.time.LocalDateTime;
-import java.util.List;
+
 
 @Entity
-@Table(name = "client")
-public class Client {
+@Table(name = "tesla_client")
+public class TeslaClient {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,7 +53,7 @@ public class Client {
             fetch = FetchType.LAZY)
     private TeslaVehicle vehicles;
 
-    public Client() {
+    public TeslaClient() {
     }
 
     public Long getId() {

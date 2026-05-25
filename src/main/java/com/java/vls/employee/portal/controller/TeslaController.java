@@ -4,7 +4,8 @@ import com.java.vls.employee.portal.dto.request.Vehicle;
 import com.java.vls.employee.portal.service.TeslaService;
 import java.util.Map;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -12,9 +13,9 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/tesla")
-@Slf4j
 public class TeslaController {
 
+    private static final Logger log = LoggerFactory.getLogger(TeslaController.class);
     private static final String WAKE_UP = "wake_up";
     private static final String FLASH_LIGHTS = "flash_lights";
     private static final String HONK_HORN = "honk_horn";

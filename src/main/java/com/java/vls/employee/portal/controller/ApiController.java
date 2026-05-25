@@ -2,7 +2,8 @@ package com.java.vls.employee.portal.controller;
 
 import com.java.vls.employee.portal.entity.TeslaTokens;
 import com.java.vls.employee.portal.repository.TeslaTokenRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +18,9 @@ import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api")
-@Slf4j
 public class ApiController {
 
+    private static final Logger log = LoggerFactory.getLogger(ApiController.class);
     private static final String TESLA_PUBLIC_KEY_RESOURCE =
             "static/.well-known/appspecific/com.tesla.3p.public-key.pem";
 
