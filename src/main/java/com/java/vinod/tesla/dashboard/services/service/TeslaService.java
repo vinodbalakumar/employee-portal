@@ -463,6 +463,7 @@ public class TeslaService {
                 new HttpEntity<>(headers()),
                 JsonNode.class
         );
+
         JsonNode body = Optional.ofNullable(response.getBody())
                 .orElseThrow(() -> new IllegalStateException("Tesla vehicle data returned an empty response"));
         JsonNode vehicleData = body.path("response");
