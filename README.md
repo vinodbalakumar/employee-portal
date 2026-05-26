@@ -1,120 +1,228 @@
-# employee-portal
+# Tesla Dashboard Services
 
+Spring Boot REST application with JWT security, static page hosting, MySQL persistence, and Tesla Fleet API command endpoints.
 
+## What This App Does
 
-# JWT Authentication Service 
+- Hosts static HTML from `src/main/resources/static` on `http://localhost:8081/`.
+- Exposes a Tesla public key file for domain verification.
+- Connects to a local MySQL database from either the IDE or Docker.
+- Stores Tesla token, client, and vehicle data in MySQL.
+- Calls Tesla Fleet API directly for vehicle lookup and wake-up.
+- Calls the configured Tesla proxy for vehicle commands.
 
-This project demonstrates a simple JWT (JSON Web Token) authentication service built with Spring Boot. It provides endpoints for user login and token generation, as well as mechanisms for validating JWT tokens to secure access to protected resources.
+## Tech Stack
 
-## Table of Contents
+- Java 21
+- Spring Boot 4.0.6
+- Spring Security
+- Spring Data JPA
+- MySQL 8
+- Flyway migrations
+- Jakarta Validation
+- Lombok
+- Maven
+- Docker
 
-- [Technologies Used](#technologies-used)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Endpoints](#endpoints)
-- [Testing the JWT Authentication](#testing-the-jwt-authentication) stateless jwt token: means not managing session with server
-- [License](#license)
+## Run Locally From IDE Or Maven
 
-## Technologies Used
+Start MySQL on your machine first. The default database config is:
 
-- **Spring Boot**: Framework for building Java-based web applications.
-- **Spring Security**: Provides authentication and authorization features.
-- **jjwt**: Java library for creating and verifying JWT tokens.
-- **H2 Database**: In-memory database for testing and development.
+```properties
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=tesla
+DB_USERNAME=root
+DB_PASSWORD=root
+JWT_PUBLIC_KEY_PATH=C:\path\to\jwt-public-key.pem
+JWT_AUDIENCES=auth-clients
+```
 
-## Installation
+Build and run:
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/jwt-authentication-service.git
-   cd jwt-authentication-service
-
-2. Ensure you have Java 11 or later and Maven installed.
-
-3. Build the project:
-
-bash
-
-mvn clean install
-
-4. Run the application:
-
-bash
-
+```bash
+mvn clean package -DskipTests
 mvn spring-boot:run
+```
 
+Open:
+
+```text
+http://localhost:8081/
+```
+
+## Run With Docker
+
+When the app runs in Docker, `localhost` points to the container, not your laptop. The Docker image uses `host.docker.internal` by default so the container can reach MySQL running on your host machine.
+
+Build:
+
+```bash
+docker build -t tesla-dashboard-services .
+```
+
+Run:
+
+```bash
+docker run -d --name tesla-dashboard-services -p 8081:8081 tesla-dashboard-services:latest
+```
+
+Run with explicit database settings:
+
+```bash
+docker run -d --name tesla-dashboard-services -p 8081:8081 ^
+  -e DB_HOST=host.docker.internal ^
+  -e DB_PORT=3306 ^
+  -e DB_NAME=tesla ^
+  -e DB_USERNAME=root ^
+  -e DB_PASSWORD=root ^
+  -e TESLA_PROXY_BASE=https://host.docker.internal:4443 ^
+  -e JWT_PUBLIC_KEY_PATH=/keys/jwt-public-key.pem ^
+  -v C:\path\to\keys:/keys:ro ^
+  tesla-dashboard-services:latest
+```
+
+On Linux, add the host gateway mapping:
+
+```bash
+docker run -d --name tesla-dashboard-services ^
+  --add-host=host.docker.internal:host-gateway ^
+  -p 8081:8081 tesla-dashboard-services:latest
+```
 
 ## Configuration
 
-The JwtUtil class is responsible for generating and validating JWT tokens. The secret key used for signing tokens is set in the SECRET_KEY variable. Ensure you change it to a secure key in a production environment.
+Application settings are in `src/main/resources/application.properties`. Runtime values can be overridden with environment variables.
 
-The SecurityConfig class configures Spring Security to use JWT for authentication. You can modify the authentication rules in the configure(HttpSecurity http) method.
+| Property | Environment Variable | Default |
+| --- | --- | --- |
+| `server.port` | `SERVER_PORT` if added manually | `8081` |
+| `spring.datasource.url` | `DB_HOST`, `DB_PORT`, `DB_NAME` | `jdbc:mysql://localhost:3306/tesla` |
+| `spring.datasource.username` | `DB_USERNAME` | `root` |
+| `spring.datasource.password` | `DB_PASSWORD` | `root` |
+| `tesla.fleet-api-base` | `TESLA_FLEET_API_BASE` | `https://fleet-api.prd.na.vn.cloud.tesla.com` |
+| `tesla.proxy-base` | `TESLA_PROXY_BASE` | `https://127.0.0.1:4443` |
+| `tesla.auth-token-url` | `TESLA_AUTH_TOKEN_URL` | `https://auth.tesla.com/oauth2/v3/token` |
+| `tesla.vehicle-id-or-vin` | `TESLA_VEHICLE_ID_OR_VIN` | empty |
+| `tesla.default-token-id` | `TESLA_DEFAULT_TOKEN_ID` | `1` |
+| `tesla.token-refresh-skew-minutes` | `TESLA_TOKEN_REFRESH_SKEW_MINUTES` | `2` |
+| `app.jwt.public-key-path` | `JWT_PUBLIC_KEY_PATH` | empty |
+| `app.jwt.public-key-base64` | `JWT_PUBLIC_KEY_BASE64` | empty |
+| `app.jwt.audiences` | `JWT_AUDIENCES` or `JWT_AUDIENCE` | `auth-clients` |
 
-## Endpoints
-1. Login
-   Endpoint: /auth/login
-   Method: POST
-   Request Body:
-   http
-   Copy code
-   username=user&password=pass
-   Response:
-   On successful login, returns a JWT token:
-   json
-   Copy code
-   {
-   "token": "your_jwt_token"
-   }
-   On failure, returns a 401 status with a message: "Invalid credentials".
+The Tesla URLs are not hardcoded in service code. `TeslaService` reads them through `TeslaProperties`.
 
-2. Protected Resource
-   Endpoint: /protected/resource
-   Method: GET
-   Headers:
-   http
-   Copy code
-   Authorization: Bearer your_jwt_token
-   Response:
-   Returns the protected resource if the token is valid.
-   Testing the JWT Authentication
-   Login: Send a POST request to /auth/login with the username and password.
+## Important URLs
 
-http
+| URL | Description |
+| --- | --- |
+| `GET /` | Static home page from `static/index.html` |
+| `GET /api/hello` | Simple application health-style response |
+| `GET /.well-known/appspecific/com.tesla.3p.public-key.pem` | Tesla public key file |
+| `GET /api/.well-known/appspecific/com.tesla.3p.public-key.pem` | API-prefixed Tesla public key file |
+| `GET /api/tesla/vehicles` | Fetches vehicles from Tesla Fleet API |
+| `GET /api/tesla/status` | Reads combined lock and charging status |
+| `GET /api/tesla/status/lock` | Reads whether the vehicle is locked or unlocked |
+| `GET /api/tesla/status/charging` | Reads whether the vehicle is charging |
+| `POST /api/tesla/wake` | Wakes the configured vehicle |
+| `POST /api/tesla/flash-lights` | Flashes vehicle lights |
+| `POST /api/tesla/honk` | Honks horn |
+| `POST /api/tesla/lock` | Locks doors |
+| `POST /api/tesla/unlock` | Unlocks doors |
+| `POST /api/tesla/climate/start` | Starts climate |
+| `POST /api/tesla/climate/stop` | Stops climate |
+| `POST /api/tesla/trunk/open` | Opens rear trunk |
+| `POST /api/tesla/frunk/open` | Opens front trunk |
+| `POST /api/tesla/start/charging` | Starts charging |
+| `POST /api/tesla/stop/charging` | Stops charging |
+| `POST /api/tesla/cmd?command=<tesla_command>` | Sends a custom command |
 
-POST /auth/login HTTP/1.1
-Content-Type: application/x-www-form-urlencoded
+## Cloudflare Tunnel Notes
 
-username=user&password=pass
-A successful response will return a JWT token.
+This project uses Cloudflare Tunnel for the public domain, not ngrok.
 
-Access Protected Resource: Use the returned token to access protected endpoints.
+Create or route the DNS name to your Cloudflare tunnel:
 
-When submitting a login form, you might send a POST request like this:
+```bash
+cloudflared tunnel route dns test vinodbalakumar.com
+```
 
-http
-Copy code
-POST /login HTTP/1.1
-Content-Type: application/x-www-form-urlencoded
+Start the Cloudflare tunnel so the public domain points to the local Spring Boot app on port `8081`:
 
-username=user%20name&password=p%40ssword%26123
-The server would then correctly interpret user name as the username and p@ssword&123 as the password.
+```bash
+cloudflared tunnel run test
+```
 
-Conclusion
-Using URL encoding when passing usernames and passwords ensures that the data is transmitted safely and accurately, avoiding any misinterpretations by the server. It’s a critical step in ensuring reliable and secure communication between clients and servers.
+The public Cloudflare URL should route to:
 
-http
+```text
+http://localhost:8081
+```
 
-GET /protected/resource HTTP/1.1
-Authorization: Bearer your_jwt_token
+Keep the Tesla HTTP proxy running separately on `127.0.0.1:4443`:
 
-## License
-This project is licensed under the VinodBalakumar License - see the LICENSE file for details.
+```powershell
+.\tesla-http-proxy.exe `
+  -key-file config\private-key.pem `
+  -cert localhost-cert.pem `
+  -tls-key localhost-key.pem `
+  -host 127.0.0.1 `
+  -port 4443 `
+  -verbose
+```
 
+Cloudflare should expose the Spring Boot app on port `8081`. Do not point Cloudflare to the Tesla proxy TLS port `4443`; that proxy is only used internally by `TeslaService` when sending signed vehicle commands.
 
-### Instructions
+## Common Troubleshooting
 
-- Replace `https://github.com/vinodbalakumar/employee-portal.git` with the actual repository URL if you're hosting it on GitHub.
-- You can adjust the endpoints, request/response details, and other sections based on your specific implementation or requirements.
-- Include additional sections as necessary, such as deployment instructions or testing information, if applicable.
+If `http://localhost:8081` does not open:
 
-Feel free to modify this `README.md` template to suit your project's needs! Let me know if you have any other requests.
+```bash
+docker ps --filter "name=tesla-dashboard-services"
+docker logs --tail 100 tesla-dashboard-services
+```
+
+If Docker cannot connect to MySQL:
+
+- Make sure MySQL is running on the host.
+- Make sure the `tesla` database exists.
+- Make sure the configured MySQL user can connect over TCP.
+- In Docker, use `DB_HOST=host.docker.internal`, not `localhost`.
+
+If Docker cannot connect to the Tesla HTTP proxy:
+
+- In Docker, use `TESLA_PROXY_BASE=https://host.docker.internal:4443`, not `https://127.0.0.1:4443`.
+- Confirm the proxy is running on the host with `Get-NetTCPConnection -LocalPort 4443`.
+- From inside the container, `127.0.0.1` is the container itself, not your Windows host.
+
+If the Tesla public key fails:
+
+- Confirm the file exists at `src/main/resources/static/.well-known/appspecific/com.tesla.3p.public-key.pem`.
+- Rebuild the Docker image after changing static files.
+- Test `http://localhost:8081/.well-known/appspecific/com.tesla.3p.public-key.pem`.
+
+If Cloudflare domain requests do not reach the app:
+
+- Confirm the app is running on `http://localhost:8081`.
+- Confirm `cloudflared tunnel run test` is still running.
+- Confirm the DNS route exists for `vinodbalakumar.com`.
+- Confirm Cloudflare routes to port `8081`, not proxy port `4443`.
+- Check app logs with `docker logs --tail 100 tesla-dashboard-services`.
+
+## Build Verification
+
+Use this before deploying:
+
+```bash
+mvn clean package -DskipTests
+docker build -t tesla-dashboard-services .
+docker run -d --name tesla-dashboard-services -p 8081:8081 tesla-dashboard-services:latest
+```
+
+Smoke test:
+
+```bash
+curl -H "Authorization: Bearer <super-admin-token>" http://localhost:8081/
+curl -H "Authorization: Bearer <super-admin-token>" http://localhost:8081/api/hello
+curl -H "Authorization: Bearer <super-admin-token>" http://localhost:8081/.well-known/appspecific/com.tesla.3p.public-key.pem
+```

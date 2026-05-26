@@ -1,7 +1,23 @@
-@Library('jenkins-shared-library') _
+pipeline {
+    agent any
 
-deployPipeline(
-    dockerRepo: 'your-docker-repo/spring-boot-app',
-    kubeconfigId: 'kubeconfig',
-    awsCredentialsId: 'aws-credentials'
-)
+    stages {
+        stage('Build') {
+            steps {
+                sh './mvnw clean package'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh "docker build -t tesla-dashboard-services:${env.BUILD_NUMBER} ."
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh "docker run -d -p 8081:8081 tesla-dashboard-services:${env.BUILD_NUMBER}"
+            }
+        }
+    }
+}
