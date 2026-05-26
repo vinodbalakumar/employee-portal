@@ -3,11 +3,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: employee-portal-backend:latest
-    container_name: employee-portal-backend
+    image: tesla-dashboard-services:latest
+    container_name: tesla-dashboard-services
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/test
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      DB_HOST: host.docker.internal
+      DB_PORT: 3306
+      DB_NAME: tesla
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64:?Set JWT_PUBLIC_KEY_BASE64 to the authorization-server public key PEM encoded as base64}
+      JWT_AUDIENCES: auth-clients
     ports:
-      - "8080:8080"
+      - "8081:8081"
