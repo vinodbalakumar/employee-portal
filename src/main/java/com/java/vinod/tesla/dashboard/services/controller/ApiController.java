@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/")
 public class ApiController {
 
     private static final Logger log = LoggerFactory.getLogger(ApiController.class);
