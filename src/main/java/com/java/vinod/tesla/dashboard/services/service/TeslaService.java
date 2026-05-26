@@ -1,6 +1,5 @@
 package com.java.vinod.tesla.dashboard.services.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDateTime;
 import java.time.Duration;
 import java.util.Date;
@@ -34,6 +33,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import tools.jackson.databind.JsonNode;
 
 @Service
 @Slf4j

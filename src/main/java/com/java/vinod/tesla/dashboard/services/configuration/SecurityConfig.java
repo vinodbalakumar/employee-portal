@@ -35,11 +35,11 @@ public class SecurityConfig {
                                 "/sitemap.xml",
                                 "/assets/**",
                                 "/.well-known/**",
-                                "/api/protected1",
-                                "/api/hello",
-                                "/api/admin",
-                                "/api/callback",
-                                "/api/.well-known/appspecific/com.tesla.3p.public-key.pem"
+                                "/protected1",
+                                "/hello",
+                                "/admin",
+                                "/callback",
+                                "/.well-known/appspecific/com.tesla.3p.public-key.pem"
                         ).permitAll()
                         .anyRequest().hasRole("SUPER_ADMIN"))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
